@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import {
   SidebarProvider,
@@ -15,6 +16,7 @@ import { BoomnLogo } from '@/components/boomn-logo';
 import { Toaster } from '@/components/ui/toaster';
 import { SiteHeader } from '@/components/site-header';
 import { AuthProvider } from '@/hooks/use-auth';
+import { GoogleAnalytics } from '@/components/google-analytics';
 
 export const metadata: Metadata = {
   title: 'Boomn',
@@ -40,6 +42,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
+        <Suspense fallback={null}>
+            <GoogleAnalytics />
+        </Suspense>
         <AuthProvider>
           <SidebarProvider>
             <Sidebar>
