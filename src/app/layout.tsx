@@ -14,6 +14,7 @@ import { UserNav } from '@/components/user-nav';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Toaster } from '@/components/ui/toaster';
 import { SiteHeader } from '@/components/site-header';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
   title: 'Boomn',
@@ -36,27 +37,29 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarProvider>
-          <Sidebar>
-            <SidebarHeader>
-              <div className="flex items-center gap-2 p-2">
-                <BoomnLogo className="w-8 h-8 text-sidebar-primary" />
-                <h1 className="text-xl font-bold text-sidebar-foreground">Boomn</h1>
-              </div>
-            </SidebarHeader>
-            <SidebarContent>
-              <MainNav />
-            </SidebarContent>
-            <SidebarFooter>
-              <UserNav />
-            </SidebarFooter>
-          </Sidebar>
-          <SidebarInset>
-            <SiteHeader />
-            <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
-        <Toaster />
+        <AuthProvider>
+          <SidebarProvider>
+            <Sidebar>
+              <SidebarHeader>
+                <div className="flex items-center gap-2 p-2">
+                  <BoomnLogo className="w-8 h-8 text-sidebar-primary" />
+                  <h1 className="text-xl font-bold text-sidebar-foreground">Boomn</h1>
+                </div>
+              </SidebarHeader>
+              <SidebarContent>
+                <MainNav />
+              </SidebarContent>
+              <SidebarFooter>
+                <UserNav />
+              </SidebarFooter>
+            </Sidebar>
+            <SidebarInset>
+              <SiteHeader />
+              <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
