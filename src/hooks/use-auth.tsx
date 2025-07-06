@@ -10,7 +10,7 @@ import {
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { Loader2 } from 'lucide-react';
+import { BoomnLogo } from '@/components/boomn-logo';
 
 type AuthContextType = {
   user: User | null;
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider value={value}>
       {loading ? (
         <div className="flex items-center justify-center h-screen w-screen bg-background">
-          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <BoomnLogo className="w-24 h-24 text-primary animate-pulse" />
         </div>
       ) : (
         children
