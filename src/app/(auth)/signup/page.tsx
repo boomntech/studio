@@ -57,8 +57,8 @@ export default function SignupPage() {
     if (!auth) {
       toast({
         variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: 'Firebase is not configured. Please check your API keys.',
+        title: 'Configuration Not Found',
+        description: 'Your Firebase API keys are missing. Please add them to the .env file in the root of your project and restart the server.',
       });
       setIsLoading(false);
       return;
