@@ -14,12 +14,14 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
-if (firebaseConfig.apiKey) {
+if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
   } catch (error) {
     console.error('Failed to initialize Firebase', error);
+    app = null;
+    auth = null;
   }
 }
 
