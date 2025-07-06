@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Camera } from 'lucide-react';
 
 const user = {
   name: 'Boomn User',
@@ -27,7 +28,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-5xl mx-auto">
       <Card className="overflow-hidden">
-        <div className="relative h-40 md:h-48 bg-muted">
+        <div className="relative group cursor-pointer h-40 md:h-48 bg-muted">
           <Image
             src={user.bannerUrl}
             alt="Banner"
@@ -35,13 +36,21 @@ export default function ProfilePage() {
             className="object-cover"
             data-ai-hint="abstract background"
           />
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="h-8 w-8 text-white" />
+          </div>
         </div>
         <div className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:gap-6 -mt-20">
-            <Avatar className="w-32 h-32 border-4 border-card">
-              <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <div className="relative group cursor-pointer">
+              <Avatar className="w-32 h-32 border-4 border-card">
+                <AvatarImage src={user.avatarUrl} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="h-8 w-8 text-white" />
+              </div>
+            </div>
             <div className="mt-4 sm:mt-0 sm:flex-1">
               <div className="flex items-center justify-between">
                 <div>
