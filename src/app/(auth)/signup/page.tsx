@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { format } from "date-fns"
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -38,10 +39,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone, Check, X } from 'lucide-react';
+import { Loader2, Mail, Phone, Check, X, CalendarIcon } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -74,6 +79,14 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
+  dob: z.date({
+    required_error: "A date of birth is required.",
+  }),
+  gender: z.string({
+    required_error: "Please select a gender.",
+  }),
+  city: z.string().min(1, { message: 'City is required.' }),
+  state: z.string().min(1, { message: 'State is required.' }),
   enableTwoFactor: z.boolean().default(false).optional(),
 });
 
@@ -115,6 +128,9 @@ export default function SignupPage() {
       username: '',
       email: '',
       password: '',
+      gender: '',
+      city: '',
+      state: '',
       enableTwoFactor: false,
     },
   });
@@ -189,8 +205,9 @@ export default function SignupPage() {
         values.password
       );
       await updateProfile(userCredential.user, { displayName: values.name });
-      // In a real app, you would save the username to a Firestore database here
-      console.log('Username to save:', values.username);
+      // In a real app, you would save the username and other profile details 
+      // to a Firestore database here
+      console.log('User profile to save:', values);
       
       router.push('/');
     } catch (error: any) {
@@ -307,7 +324,7 @@ export default function SignupPage() {
 
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-md my-8">
       <CardHeader className="text-center">
         <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
         <CardTitle className="mt-4">Create an Account</CardTitle>
@@ -409,6 +426,104 @@ export default function SignupPage() {
                 </FormItem>
               )}
             />
+            <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Date of birth</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                            )}
+                            >
+                            {field.value ? (
+                                format(field.value, "PPP")
+                            ) : (
+                                <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                        />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gender</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="non-binary">Non-binary</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. San Francisco" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>State / Province</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. California" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <FormDescription>
+                For a better experience, this could be integrated with a maps API.
+            </FormDescription>
+
              <FormField
               control={form.control}
               name="enableTwoFactor"

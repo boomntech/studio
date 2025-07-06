@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { format } from "date-fns"
 import { updateProfile } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -16,13 +17,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon } from 'lucide-react';
+import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   username: z.string()
     .min(3, { message: "Username must be at least 3 characters."})
     .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores."}),
+  dob: z.date().optional(),
+  gender: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
 });
 
 // Mock function to simulate checking username availability
@@ -68,6 +76,10 @@ export default function SettingsPage() {
         defaultValues: {
             name: '',
             username: '',
+            dob: undefined,
+            gender: '',
+            city: '',
+            state: '',
         },
     });
 
@@ -127,7 +139,13 @@ export default function SettingsPage() {
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
             profileForm.reset({ 
                 name: user.displayName || '',
-                username: currentUsername
+                username: currentUsername,
+                // These would be fetched from your database (e.g., Firestore)
+                // For demonstration, we'll leave them as default or empty.
+                dob: undefined,
+                gender: '',
+                city: '',
+                state: '',
             });
         }
     }, [user, profileForm]);
@@ -159,12 +177,14 @@ export default function SettingsPage() {
         setIsProfileLoading(true);
         try {
             await updateProfile(user, { displayName: values.name });
-            // In a real app, you would also update the username in your database
-            if (values.username !== initialUsername) {
+            // In a real app, you would also update the username and other profile
+            // details in your database (e.g., Firestore) here.
+            console.log("Updating profile with:", values);
+            if (values.username && values.username !== initialUsername) {
               console.log("Updating username to:", values.username);
               setInitialUsername(values.username); // Update the initial username to the new one
             }
-            toast({ title: 'Profile Updated', description: 'Your name has been successfully updated.' });
+            toast({ title: 'Profile Updated', description: 'Your information has been successfully updated.' });
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         } finally {
@@ -216,7 +236,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3"><UserIcon className="h-6 w-6" /><span>Profile Information</span></CardTitle>
-                    <CardDescription>Update your personal details like your name and username.</CardDescription>
+                    <CardDescription>Update your personal details. This information is private and will not be displayed publicly.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...profileForm}>
@@ -284,6 +304,99 @@ export default function SettingsPage() {
                                 </FormItem>
                               )}
                             />
+                            <FormField
+                                control={profileForm.control}
+                                name="dob"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                    <FormLabel>Date of birth</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-full pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? (
+                                                format(field.value, "PPP")
+                                            ) : (
+                                                <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                            date > new Date() || date < new Date("1900-01-01")
+                                            }
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={profileForm.control}
+                                name="gender"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Gender</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select your gender" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="male">Male</SelectItem>
+                                            <SelectItem value="female">Female</SelectItem>
+                                            <SelectItem value="non-binary">Non-binary</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
+                                            <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={profileForm.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>City</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. San Francisco" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={profileForm.control}
+                                    name="state"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>State / Province</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. California" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
                             <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
                                 {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes
