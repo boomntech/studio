@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -12,6 +13,9 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   sendSignInLinkToEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  type ConfirmationResult,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -34,7 +38,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, Phone } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -77,6 +81,11 @@ export default function SignupPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isLinkLoading, setIsLinkLoading] = useState(false);
   const [emailForLink, setEmailForLink] = useState('');
+  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
+  const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,6 +96,17 @@ export default function SignupPage() {
       enableTwoFactor: false,
     },
   });
+
+  useEffect(() => {
+    if (!auth) return;
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': () => { /* reCAPTCHA solved */ }
+      });
+      (window as any).recaptchaVerifier.render();
+    }
+  }, [auth]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -187,6 +207,43 @@ export default function SignupPage() {
     }
   };
 
+  const handleSendVerificationSms = async () => {
+    if (!auth) {
+      toast({ variant: 'destructive', title: 'Firebase not configured.'});
+      return;
+    }
+    if (!phoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
+        toast({ variant: 'destructive', title: 'Invalid Phone Number', description: 'Please use E.164 format (e.g., +14155552671).' });
+        return;
+    }
+    setIsPhoneLoading(true);
+    try {
+        const appVerifier = (window as any).recaptchaVerifier;
+        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        setConfirmationResult(result);
+        setPhoneStep('enterCode');
+        toast({ title: 'Verification Code Sent', description: `A code has been sent to ${phoneNumber}.` });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Failed to Send Code', description: error.message });
+    } finally {
+        setIsPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+      if (!confirmationResult) return;
+      setIsPhoneLoading(true);
+      try {
+          await confirmationResult.confirm(verificationCode);
+          router.push('/');
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Verification Failed', description: error.message });
+      } finally {
+          setIsPhoneLoading(false);
+      }
+  };
+
+
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="text-center">
@@ -262,7 +319,7 @@ export default function SignupPage() {
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading || isLinkLoading}
+              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -283,7 +340,7 @@ export default function SignupPage() {
         <Button
           variant="outline"
           type="button"
-          disabled={isLoading || isGoogleLoading || isLinkLoading}
+          disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
           onClick={handleGoogleSignUp}
           className="w-full"
         >
@@ -313,13 +370,13 @@ export default function SignupPage() {
               placeholder="you@example.com"
               value={emailForLink}
               onChange={(e) => setEmailForLink(e.target.value)}
-              disabled={isLoading || isGoogleLoading || isLinkLoading}
+              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
             />
           </div>
           <Button
             variant="outline"
             type="button"
-            disabled={isLoading || isGoogleLoading || isLinkLoading}
+            disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
             onClick={handleSendSignInLink}
             className="w-full"
           >
@@ -331,6 +388,67 @@ export default function SignupPage() {
             Email me a sign-in link
           </Button>
         </div>
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              Or sign up with phone
+            </span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          {phoneStep === 'enterPhone' ? (
+            <div className="space-y-2">
+              <Label htmlFor="phone-number">Phone Number</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="phone-number"
+                  type="tel"
+                  placeholder="+14155552671"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
+                />
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading || !phoneNumber}
+                  onClick={handleSendVerificationSms}
+                  className="w-auto"
+                >
+                  {isPhoneLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send Code'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="verification-code">Verification Code</Label>
+              <p className="text-sm text-muted-foreground">Enter the 6-digit code sent to {phoneNumber}.</p>
+               <div className="flex gap-2">
+                <Input
+                  id="verification-code"
+                  type="text"
+                  placeholder="123456"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  disabled={isPhoneLoading}
+                />
+                 <Button
+                  type="button"
+                  disabled={isPhoneLoading || !verificationCode}
+                  onClick={handleVerifyCode}
+                  className="w-auto"
+                >
+                  {isPhoneLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Verify & Sign Up
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        <div id="recaptcha-container" className="my-4"></div>
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">
