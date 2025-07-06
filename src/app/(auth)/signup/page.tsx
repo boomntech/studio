@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone } from 'lucide-react';
+import { Loader2, Mail, Phone, Check, X } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -67,12 +67,29 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  username: z.string()
+    .min(3, { message: "Username must be at least 3 characters."})
+    .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores."}),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
   enableTwoFactor: z.boolean().default(false).optional(),
 });
+
+// Mock function to simulate checking username availability
+const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; suggestions: string[] }> => {
+    const takenUsernames = ['admin', 'root', 'test', 'user', 'boomn', 'boomnuser'];
+    console.log(`Checking username: ${username}`);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    if (takenUsernames.includes(username.toLowerCase())) {
+        return {
+            available: false,
+            suggestions: [`${username}${Math.floor(Math.random() * 100)}`, `${username}_pro`, `the_${username}`],
+        };
+    }
+    return { available: true, suggestions: [] };
+};
 
 export default function SignupPage() {
   const router = useRouter();
@@ -87,15 +104,55 @@ export default function SignupPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
     defaultValues: {
       name: '',
+      username: '',
       email: '',
       password: '',
       enableTwoFactor: false,
     },
   });
+
+  const handleUsernameCheck = useCallback(
+    async (username: string) => {
+      if (username.length < 3 || form.getFieldState('username').invalid) {
+        setUsernameStatus('idle');
+        return;
+      }
+      
+      setUsernameStatus('checking');
+      const { available, suggestions } = await checkUsernameAvailability(username);
+
+      if (available) {
+        setUsernameStatus('available');
+        form.clearErrors('username');
+      } else {
+        setUsernameStatus('taken');
+        setUsernameSuggestions(suggestions);
+        form.setError('username', { type: 'manual', message: 'This username is already taken.' });
+      }
+    },
+    [form]
+  );
+
+  const debouncedUsernameCheck = useCallback(
+    (f: (username: string) => void) => {
+      let timer: NodeJS.Timeout;
+      return (username: string) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          f(username);
+        }, 500);
+      };
+    },
+    []
+  )(handleUsernameCheck);
 
   useEffect(() => {
     if (!auth) return;
@@ -106,10 +163,16 @@ export default function SignupPage() {
       });
       (window as any).recaptchaVerifier.render();
     }
-  }, [auth]);
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    if (usernameStatus !== 'available') {
+      form.setError('username', { type: 'manual', message: 'Please choose an available username.' });
+      setIsLoading(false);
+      return;
+    }
+
     if (!auth) {
       toast({
         variant: 'destructive',
@@ -126,9 +189,8 @@ export default function SignupPage() {
         values.password
       );
       await updateProfile(userCredential.user, { displayName: values.name });
-
-      // Note: Logic to handle `values.enableTwoFactor` would be implemented here,
-      // likely redirecting to a 2FA setup page on first login.
+      // In a real app, you would save the username to a Firestore database here
+      console.log('Username to save:', values.username);
       
       router.push('/');
     } catch (error: any) {
@@ -186,7 +248,7 @@ export default function SignupPage() {
     }
     setIsLinkLoading(true);
     const actionCodeSettings = {
-      url: `${window.location.origin}/login`, // Redirect to login where link is handled
+      url: `${window.location.origin}/login`, 
       handleCodeInApp: true,
     };
     try {
@@ -269,6 +331,56 @@ export default function SignupPage() {
             />
             <FormField
               control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        placeholder="your_username" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          debouncedUsernameCheck(e.target.value);
+                        }}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
+                        {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    {usernameStatus === 'available' && <span className="text-green-500">Username is available!</span>}
+                    {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
+                      <div className="space-x-1">
+                        <span>Suggestions:</span>
+                        {usernameSuggestions.map((s, i) => (
+                          <Button
+                            key={s}
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="p-0 h-auto"
+                            onClick={() => {
+                              form.setValue('username', s, { shouldValidate: true });
+                              handleUsernameCheck(s);
+                            }}
+                          >
+                            {s}{i < usernameSuggestions.length -1 && ','}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
@@ -319,7 +431,7 @@ export default function SignupPage() {
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
+              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading || usernameStatus === 'checking'}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

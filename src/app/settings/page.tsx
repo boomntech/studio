@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,12 +15,32 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon } from 'lucide-react';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X } from 'lucide-react';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  username: z.string()
+    .min(3, { message: "Username must be at least 3 characters."})
+    .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores."}),
 });
+
+// Mock function to simulate checking username availability
+const checkUsernameAvailability = async (username: string, currentUsername?: string): Promise<{ available: boolean; suggestions: string[] }> => {
+    const takenUsernames = ['admin', 'root', 'test', 'user', 'boomn'];
+    console.log(`Checking username: ${username}`);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    if (username.toLowerCase() === currentUsername?.toLowerCase()) {
+      return { available: true, suggestions: [] };
+    }
+    if (takenUsernames.includes(username.toLowerCase())) {
+        return {
+            available: false,
+            suggestions: [`${username}${Math.floor(Math.random() * 100)}`, `${username}_pro`, `the_${username}`],
+        };
+    }
+    return { available: true, suggestions: [] };
+};
 
 export default function SettingsPage() {
     const { user } = useAuth();
@@ -37,12 +57,60 @@ export default function SettingsPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
 
+    // Username state
+    const [initialUsername, setInitialUsername] = useState('');
+    const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+    const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+
     const profileForm = useForm<z.infer<typeof profileFormSchema>>({
         resolver: zodResolver(profileFormSchema),
+        mode: 'onChange',
         defaultValues: {
             name: '',
+            username: '',
         },
     });
+
+    const handleUsernameCheck = useCallback(
+      async (username: string) => {
+        if (username.toLowerCase() === initialUsername.toLowerCase()) {
+          setUsernameStatus('idle');
+          profileForm.clearErrors('username');
+          return;
+        }
+        if (username.length < 3 || profileForm.getFieldState('username').invalid) {
+          setUsernameStatus('idle');
+          return;
+        }
+        
+        setUsernameStatus('checking');
+        const { available, suggestions } = await checkUsernameAvailability(username, initialUsername);
+
+        if (available) {
+          setUsernameStatus('available');
+          profileForm.clearErrors('username');
+        } else {
+          setUsernameStatus('taken');
+          setUsernameSuggestions(suggestions);
+          profileForm.setError('username', { type: 'manual', message: 'This username is already taken.' });
+        }
+      },
+      [profileForm, initialUsername]
+    );
+
+    const debouncedUsernameCheck = useCallback(
+      (f: (username: string) => void) => {
+        let timer: NodeJS.Timeout;
+        return (username: string) => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            f(username);
+          }, 500);
+        };
+      },
+      []
+    )(handleUsernameCheck);
+
 
     useEffect(() => {
         setIsMounted(true);
@@ -54,8 +122,13 @@ export default function SettingsPage() {
         }
 
         if (user) {
+            const currentUsername = user.email?.split('@')[0] || 'boomnuser';
+            setInitialUsername(currentUsername);
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
-            profileForm.reset({ name: user.displayName || '' });
+            profileForm.reset({ 
+                name: user.displayName || '',
+                username: currentUsername
+            });
         }
     }, [user, profileForm]);
     
@@ -71,11 +144,26 @@ export default function SettingsPage() {
         }
     }, [theme, isMounted]);
 
+    const handleThemeChange = (checked: boolean) => {
+        setTheme(checked ? 'dark' : 'light');
+    };
+
     const handleProfileUpdate = async (values: z.infer<typeof profileFormSchema>) => {
         if (!user) return;
+        
+        if (values.username !== initialUsername && usernameStatus !== 'available') {
+            profileForm.setError('username', { type: 'manual', message: 'Please choose an available username or keep your current one.' });
+            return;
+        }
+
         setIsProfileLoading(true);
         try {
             await updateProfile(user, { displayName: values.name });
+            // In a real app, you would also update the username in your database
+            if (values.username !== initialUsername) {
+              console.log("Updating username to:", values.username);
+              setInitialUsername(values.username); // Update the initial username to the new one
+            }
             toast({ title: 'Profile Updated', description: 'Your name has been successfully updated.' });
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -128,7 +216,7 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3"><UserIcon className="h-6 w-6" /><span>Profile Information</span></CardTitle>
-                    <CardDescription>Update your personal details like your name.</CardDescription>
+                    <CardDescription>Update your personal details like your name and username.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...profileForm}>
@@ -146,7 +234,57 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isProfileLoading}>
+                            <FormField
+                              control={profileForm.control}
+                              name="username"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Username</FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Input 
+                                        placeholder="your_username" 
+                                        {...field} 
+                                        onChange={(e) => {
+                                          field.onChange(e);
+                                          debouncedUsernameCheck(e.target.value);
+                                        }}
+                                      />
+                                      <div className="absolute inset-y-0 right-3 flex items-center">
+                                        {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                        {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
+                                        {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+                                      </div>
+                                    </div>
+                                  </FormControl>
+                                  <FormDescription>
+                                    {usernameStatus === 'available' && <span className="text-green-500">Username is available!</span>}
+                                    {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
+                                      <div className="space-x-1">
+                                        <span>Suggestions:</span>
+                                        {usernameSuggestions.map((s, i) => (
+                                          <Button
+                                            key={s}
+                                            type="button"
+                                            variant="link"
+                                            size="sm"
+                                            className="p-0 h-auto"
+                                            onClick={() => {
+                                              profileForm.setValue('username', s, { shouldValidate: true });
+                                              handleUsernameCheck(s);
+                                            }}
+                                          >
+                                            {s}{i < usernameSuggestions.length -1 && ','}
+                                          </Button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
                                 {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes
                             </Button>
