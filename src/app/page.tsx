@@ -48,6 +48,9 @@ const posts = [
     shares: 2,
     timestamp: '1d ago',
     type: 'business',
+    websiteUrl: '#',
+    appointmentUrl: '#',
+    productUrl: '#',
   },
 ];
 

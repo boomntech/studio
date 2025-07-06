@@ -4,8 +4,9 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Flame } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Flame, ShoppingBag, Link as LinkIcon, CalendarPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 type PostAuthor = {
   name: string;
@@ -25,6 +26,9 @@ type Post = {
   timestamp: string;
   type: 'personal' | 'business';
   trending?: boolean;
+  websiteUrl?: string;
+  appointmentUrl?: string;
+  productUrl?: string;
 };
 
 interface PostCardProps {
@@ -80,6 +84,39 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         )}
       </CardContent>
+      
+      {post.type === 'business' && (post.websiteUrl || post.appointmentUrl || post.productUrl) && (
+        <div className="px-4">
+          <Separator className="my-2" />
+          <div className="flex flex-wrap items-center gap-2 pb-2">
+            {post.productUrl && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={post.productUrl} target="_blank" rel="noopener noreferrer">
+                  <ShoppingBag className="mr-2" />
+                  View Product
+                </a>
+              </Button>
+            )}
+            {post.websiteUrl && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={post.websiteUrl} target="_blank" rel="noopener noreferrer">
+                  <LinkIcon className="mr-2" />
+                  Visit Website
+                </a>
+              </Button>
+            )}
+            {post.appointmentUrl && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={post.appointmentUrl} target="_blank" rel="noopener noreferrer">
+                  <CalendarPlus className="mr-2" />
+                  Book Now
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <CardFooter className="p-2 flex items-center justify-between">
         <div className="flex items-center gap-1">
           <Button variant="ghost" onClick={handleLike} className="flex items-center gap-2">
