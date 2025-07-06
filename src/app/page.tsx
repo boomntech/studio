@@ -1,5 +1,6 @@
 import { CreatePost } from '@/components/create-post';
 import { PostCard } from '@/components/post-card';
+import { StoriesBar } from '@/components/stories-bar';
 
 const posts = [
   {
@@ -48,6 +49,7 @@ const posts = [
 export default function Home() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <StoriesBar />
       <CreatePost />
       <div className="space-y-4">
         {posts.map((post) => (
