@@ -5,7 +5,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 
 const titles: { [key: string]: string } = {
   '/': 'Home',
-  '/explore': 'Explore',
+  '/explore': 'Discover',
   '/events': 'Events',
   '/messages': 'Messages',
   '/assistant': 'AI Assistant',

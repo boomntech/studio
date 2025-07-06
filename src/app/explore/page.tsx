@@ -1,33 +1,116 @@
-import Image from 'next/image';
+import { SuggestionCard } from '@/components/suggestion-card';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 
-const images = [
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 1', hint: 'travel city' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 2', hint: 'food photography' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 3', hint: 'nature landscape' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 4', hint: 'fashion style' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 5', hint: 'abstract art' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 6', hint: 'pet animal' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 7', hint: 'sports action' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 8', hint: 'technology gadget' },
-  { src: 'https://placehold.co/600x600.png', alt: 'Placeholder 9', hint: 'architecture building' },
+
+const suggestions = [
+  {
+    id: '1',
+    name: 'Tech Innovators',
+    handle: '@techinnovators',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'logo tech',
+    bio: 'Your daily dose of the latest in technology and innovation. We cover everything from AI to space exploration.',
+    type: 'business',
+  },
+  {
+    id: '2',
+    name: 'Alex Johnson',
+    handle: '@alexj',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'portrait photographer',
+    bio: 'Photographer & Digital Nomad. Capturing the world one photo at a time. 📸✈️',
+    type: 'personal',
+  },
+  {
+    id: '3',
+    name: 'Gourmet Guides',
+    handle: '@gourmetguides',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'logo food',
+    bio: 'Discover the best food spots in your city. Reviews, recipes, and more for all the foodies out there!',
+    type: 'business',
+  },
+    {
+    id: '4',
+    name: 'Maria Garcia',
+    handle: '@mariag',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'portrait fitness',
+    bio: 'Fitness enthusiast and personal trainer. Helping you achieve your health goals. #fitness #health',
+    type: 'personal',
+  },
+  {
+    id: '5',
+    name: 'Creative Coders',
+    handle: '@creativecoders',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'logo code',
+    bio: 'A community for developers who love to build beautiful and creative things with code. Join us!',
+    type: 'business',
+  },
+    {
+    id: '6',
+    name: 'Sam Chen',
+    handle: '@samchen',
+    avatarUrl: 'https://placehold.co/64x64.png',
+    avatarHint: 'portrait gamer',
+    bio: 'Indie game developer working on my next big project. I talk about game design and development.',
+    type: 'personal',
+  },
 ];
 
 export default function ExplorePage() {
+    const personalSuggestions = suggestions.filter(s => s.type === 'personal');
+    const businessSuggestions = suggestions.filter(s => s.type === 'business');
+
   return (
-    <div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-        {images.map((image, index) => (
-          <div key={index} className="aspect-square relative group">
-            <Image
-              src={image.src}
-              alt={image.alt}
-              fill
-              className="object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
-              data-ai-hint={image.hint}
-            />
-          </div>
-        ))}
+    <div className="max-w-4xl mx-auto space-y-6">
+       <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          placeholder="Search for people and businesses..."
+          className="pl-10 h-12 text-base"
+        />
       </div>
+
+       <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="people">People</TabsTrigger>
+          <TabsTrigger value="businesses">Businesses</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all" className="mt-6">
+          <div className="space-y-4">
+             <h2 className="text-2xl font-bold">Suggested for you</h2>
+            {suggestions.map((suggestion) => (
+              <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="people" className="mt-6">
+           <div className="space-y-4">
+             <h2 className="text-2xl font-bold">Suggested People</h2>
+            {personalSuggestions.map((suggestion) => (
+              <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="businesses" className="mt-6">
+           <div className="space-y-4">
+             <h2 className="text-2xl font-bold">Suggested Businesses</h2>
+            {businessSuggestions.map((suggestion) => (
+              <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
