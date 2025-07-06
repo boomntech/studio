@@ -15,12 +15,14 @@ import {
   Sparkles,
   Wallet,
   User,
+  Shuffle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const links = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/explore', label: 'Discover', icon: Compass },
+  { href: '/network', label: 'Network', icon: Shuffle },
   { href: '/events', label: 'Events', icon: Calendar },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/assistant', label: 'Assistant', icon: Sparkles },
