@@ -8,7 +8,11 @@ import {
   type ReactNode,
 } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+} from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -34,13 +38,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return;
     }
+
+    // Handle sign in with email link before setting up the listener
+    // to ensure the sign-in process is initiated.
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        email = window.prompt('Please provide your email for confirmation');
+      }
+      if (email) {
+        signInWithEmailLink(auth, email, window.location.href)
+          .catch((error) => {
+            console.error('Failed to sign in with email link', error);
+          })
+          .finally(() => {
+            // Clean up URL to remove auth-related query parameters
+            // regardless of success or failure.
+            router.replace(pathname);
+          });
+      }
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [pathname, router]);
 
   useEffect(() => {
     if (loading) return;

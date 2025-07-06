@@ -11,6 +11,7 @@ import {
   updateProfile,
   signInWithPopup,
   GoogleAuthProvider,
+  sendSignInLinkToEmail,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -73,6 +75,8 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLinkLoading, setIsLinkLoading] = useState(false);
+  const [emailForLink, setEmailForLink] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -140,6 +144,46 @@ export default function SignupPage() {
       });
     } finally {
       setIsGoogleLoading(false);
+    }
+  };
+
+  const handleSendSignInLink = async () => {
+    if (!auth) {
+      toast({
+        variant: 'destructive',
+        title: 'Configuration Not Found',
+        description: 'Your Firebase API keys are missing. Please add them to the .env file in the root of your project and restart the server.',
+      });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailForLink)) {
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Email',
+            description: 'Please enter a valid email address.',
+        });
+        return;
+    }
+    setIsLinkLoading(true);
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login`, // Redirect to login where link is handled
+      handleCodeInApp: true,
+    };
+    try {
+      await sendSignInLinkToEmail(auth, emailForLink, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', emailForLink);
+      toast({
+        title: 'Check your email',
+        description: `A sign-in link has been sent to ${emailForLink}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Sending Link',
+        description: error.message,
+      });
+    } finally {
+      setIsLinkLoading(false);
     }
   };
 
@@ -218,7 +262,7 @@ export default function SignupPage() {
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading || isGoogleLoading || isLinkLoading}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -239,7 +283,7 @@ export default function SignupPage() {
         <Button
           variant="outline"
           type="button"
-          disabled={isLoading || isGoogleLoading}
+          disabled={isLoading || isGoogleLoading || isLinkLoading}
           onClick={handleGoogleSignUp}
           className="w-full"
         >
@@ -250,6 +294,43 @@ export default function SignupPage() {
           )}
           Google
         </Button>
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              Or get a sign-in link
+            </span>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email-link">Email</Label>
+            <Input
+              id="email-link"
+              type="email"
+              placeholder="you@example.com"
+              value={emailForLink}
+              onChange={(e) => setEmailForLink(e.target.value)}
+              disabled={isLoading || isGoogleLoading || isLinkLoading}
+            />
+          </div>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={isLoading || isGoogleLoading || isLinkLoading}
+            onClick={handleSendSignInLink}
+            className="w-full"
+          >
+            {isLinkLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Email me a sign-in link
+          </Button>
+        </div>
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">
