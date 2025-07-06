@@ -21,6 +21,7 @@ import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon,
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
+import { OccupationInput } from '@/components/occupation-input';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -31,6 +32,7 @@ const profileFormSchema = z.object({
   gender: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
+  occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
 });
 
 // Mock function to simulate checking username availability
@@ -80,6 +82,7 @@ export default function SettingsPage() {
             gender: '',
             city: '',
             state: '',
+            occupations: [],
         },
     });
 
@@ -146,6 +149,7 @@ export default function SettingsPage() {
                 gender: '',
                 city: '',
                 state: '',
+                occupations: [], // Fetch from DB in a real app
             });
         }
     }, [user, profileForm]);
@@ -397,6 +401,22 @@ export default function SettingsPage() {
                                     )}
                                 />
                             </div>
+                            <FormField
+                                control={profileForm.control}
+                                name="occupations"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Occupations</FormLabel>
+                                    <FormControl>
+                                        <OccupationInput value={field.value ?? []} onChange={field.onChange} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Select up to 5 occupations. Start typing to get AI-powered suggestions.
+                                    </FormDescription>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
                                 {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes
