@@ -7,6 +7,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { TrendingCard } from '@/components/trending-card';
 
 
 const suggestions = [
@@ -71,7 +72,8 @@ export default function ExplorePage() {
     const businessSuggestions = suggestions.filter(s => s.type === 'business');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
+      <div className="lg:col-span-2 xl:col-span-3 space-y-6">
        <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -111,6 +113,11 @@ export default function ExplorePage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
+
+      <div className="hidden lg:block space-y-6">
+        <TrendingCard />
+      </div>
     </div>
   );
 }
