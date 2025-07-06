@@ -33,6 +33,7 @@ const posts = [
     shares: 20,
     timestamp: '5h ago',
     type: 'personal',
+    trending: true,
   },
   {
     id: '3',

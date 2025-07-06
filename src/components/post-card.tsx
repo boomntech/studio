@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PostAuthor = {
@@ -24,6 +24,7 @@ type Post = {
   shares: number;
   timestamp: string;
   type: 'personal' | 'business';
+  trending?: boolean;
 };
 
 interface PostCardProps {
@@ -52,7 +53,10 @@ export function PostCard({ post }: PostCardProps) {
           <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="font-bold">{post.author.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-bold">{post.author.name}</p>
+            {post.trending && <Flame className="h-4 w-4 text-orange-500" />}
+          </div>
           <p className="text-sm text-muted-foreground">
             {post.author.handle} · {post.timestamp}
           </p>
