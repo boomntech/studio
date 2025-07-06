@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PostAuthor = {
@@ -32,10 +32,15 @@ interface PostCardProps {
 export function PostCard({ post }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleLike = () => {
     setIsLiked(!isLiked);
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+  };
+  
+  const handleSave = () => {
+    setIsSaved(!isSaved);
   };
 
   return (
@@ -70,8 +75,8 @@ export function PostCard({ post }: PostCardProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="p-2">
-        <div className="flex w-full justify-around">
+      <CardFooter className="p-2 flex items-center justify-between">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" onClick={handleLike} className="flex items-center gap-2">
             <Heart className={cn('h-5 w-5', isLiked ? 'text-red-500 fill-current' : '')} />
             <span className="text-sm text-muted-foreground">{likeCount}</span>
@@ -85,6 +90,9 @@ export function PostCard({ post }: PostCardProps) {
             <span className="text-sm text-muted-foreground">{post.shares}</span>
           </Button>
         </div>
+        <Button variant="ghost" size="icon" onClick={handleSave}>
+          <Bookmark className={cn('h-5 w-5', isSaved && 'text-primary fill-current')} />
+        </Button>
       </CardFooter>
     </Card>
   );
