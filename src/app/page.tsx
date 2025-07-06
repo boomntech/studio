@@ -1,6 +1,7 @@
 import { CreatePost } from '@/components/create-post';
 import { PostCard } from '@/components/post-card';
 import { StoriesBar } from '@/components/stories-bar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const posts = [
   {
@@ -17,6 +18,7 @@ const posts = [
     comments: 12,
     shares: 5,
     timestamp: '2h ago',
+    type: 'personal',
   },
   {
     id: '2',
@@ -30,32 +32,60 @@ const posts = [
     comments: 45,
     shares: 20,
     timestamp: '5h ago',
+    type: 'personal',
   },
   {
     id: '3',
     author: {
-      name: 'Alice Johnson',
+      name: 'Boomn Corp',
       avatarUrl: 'https://placehold.co/40x40.png',
-      handle: '@alicej',
+      handle: '@boomncorp',
     },
     content: 'Loving the new Boomn features! The event listings are a game-changer.',
     likes: 88,
     comments: 8,
     shares: 2,
     timestamp: '1d ago',
+    type: 'business',
   },
 ];
 
 export default function Home() {
+  const personalPosts = posts.filter((post) => post.type === 'personal');
+  const businessPosts = posts.filter((post) => post.type === 'business');
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <StoriesBar />
       <CreatePost />
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="business">Businesses</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all" className="mt-6">
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="personal" className="mt-6">
+          <div className="space-y-4">
+            {personalPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="business" className="mt-6">
+          <div className="space-y-4">
+            {businessPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

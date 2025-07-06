@@ -23,6 +23,7 @@ type Post = {
   comments: number;
   shares: number;
   timestamp: string;
+  type: 'personal' | 'business';
 };
 
 interface PostCardProps {
