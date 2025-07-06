@@ -1,7 +1,12 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { updateProfile } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -10,13 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2 } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon } from 'lucide-react';
+
+const profileFormSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+});
 
 export default function SettingsPage() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [theme, setTheme] = useState('light');
     const [isMounted, setIsMounted] = useState(false);
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
 
     // 2FA State
     const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
@@ -25,6 +36,13 @@ export default function SettingsPage() {
     const [step, setStep] = useState(1); // 1: enter phone, 2: enter code
     const [phoneNumber, setPhoneNumber] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
+
+    const profileForm = useForm<z.infer<typeof profileFormSchema>>({
+        resolver: zodResolver(profileFormSchema),
+        defaultValues: {
+            name: '',
+        },
+    });
 
     useEffect(() => {
         setIsMounted(true);
@@ -37,8 +55,9 @@ export default function SettingsPage() {
 
         if (user) {
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
+            profileForm.reset({ name: user.displayName || '' });
         }
-    }, [user]);
+    }, [user, profileForm]);
     
     useEffect(() => {
         if (isMounted) {
@@ -52,8 +71,17 @@ export default function SettingsPage() {
         }
     }, [theme, isMounted]);
 
-    const handleThemeChange = (checked: boolean) => {
-        setTheme(checked ? 'dark' : 'light');
+    const handleProfileUpdate = async (values: z.infer<typeof profileFormSchema>) => {
+        if (!user) return;
+        setIsProfileLoading(true);
+        try {
+            await updateProfile(user, { displayName: values.name });
+            toast({ title: 'Profile Updated', description: 'Your name has been successfully updated.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        } finally {
+            setIsProfileLoading(false);
+        }
     };
 
     const handleSendCode = async () => {
@@ -97,6 +125,36 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><UserIcon className="h-6 w-6" /><span>Profile Information</span></CardTitle>
+                    <CardDescription>Update your personal details like your name.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                            <FormField
+                                control={profileForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Full Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Your full name" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" disabled={isProfileLoading}>
+                                {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+            
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3"><ShieldCheck className="h-6 w-6" /><span>Two-Factor Authentication</span></CardTitle>
