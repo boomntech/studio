@@ -32,12 +32,12 @@ export function UserNav() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link href="/profile" legacyBehavior passHref>
-              <SidebarMenuButton isActive={isActive('/profile')} tooltip="Profile">
+            <SidebarMenuButton asChild isActive={isActive('/profile')} tooltip="Profile">
+              <Link href="/profile">
                 <User className="w-5 h-5" />
                 <span>Profile</span>
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Log out">
