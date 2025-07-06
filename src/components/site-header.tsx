@@ -11,6 +11,7 @@ const titles: { [key: string]: string } = {
   '/assistant': 'AI Assistant',
   '/wallet': 'Wallet',
   '/profile': 'Profile',
+  '/settings': 'Settings',
 };
 
 function getTitle(pathname: string) {

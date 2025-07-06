@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, ChevronsUpDown } from 'lucide-react';
+import { LogOut, User, ChevronsUpDown, Settings } from 'lucide-react';
 import { SidebarSeparator } from '@/components/ui/sidebar';
 
 const profiles = [
@@ -80,6 +80,13 @@ export function UserNav() {
                         <span>Profile</span>
                     </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/settings" className="w-full flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
