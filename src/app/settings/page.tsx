@@ -1,26 +1,44 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Moon, Sun, Languages, Database } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
+    const { user } = useAuth();
+    const { toast } = useToast();
     const [theme, setTheme] = useState('light');
     const [isMounted, setIsMounted] = useState(false);
+
+    // 2FA State
+    const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [step, setStep] = useState(1); // 1: enter phone, 2: enter code
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [verificationCode, setVerificationCode] = useState('');
 
     useEffect(() => {
         setIsMounted(true);
         const storedTheme = localStorage.getItem('theme');
-        // Set initial theme based on localStorage or system preference
         if (storedTheme) {
             setTheme(storedTheme);
         } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
             setTheme('dark');
         }
-    }, []);
+
+        if (user) {
+            setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
+        }
+    }, [user]);
     
     useEffect(() => {
         if (isMounted) {
@@ -37,13 +55,110 @@ export default function SettingsPage() {
     const handleThemeChange = (checked: boolean) => {
         setTheme(checked ? 'dark' : 'light');
     };
-    
+
+    const handleSendCode = async () => {
+        // Full implementation requires Firebase logic with RecaptchaVerifier
+        setIsLoading(true);
+        console.log('Sending verification code to:', phoneNumber);
+        setTimeout(() => {
+            toast({ title: 'Verification Code Sent (Simulated)', description: 'Check your phone for the code.' });
+            setStep(2);
+            setIsLoading(false);
+        }, 1000);
+    };
+
+    const handleVerifyCode = async () => {
+        // Full implementation requires Firebase logic
+        setIsLoading(true);
+        console.log('Verifying code:', verificationCode);
+        setTimeout(() => {
+            toast({ title: 'Success! (Simulated)', description: 'Two-factor authentication has been enabled.' });
+            setIsTwoFactorEnabled(true);
+            setIsDialogOpen(false);
+            setStep(1);
+            setIsLoading(false);
+        }, 1000);
+    };
+
+    const handleDisable2FA = async () => {
+        // Full implementation requires Firebase logic
+        setIsLoading(true);
+        console.log('Disabling 2FA');
+        setTimeout(() => {
+            toast({ title: 'Success! (Simulated)', description: 'Two-factor authentication has been disabled.' });
+            setIsTwoFactorEnabled(false);
+            setIsLoading(false);
+        }, 1000);
+    };
+
     if (!isMounted) {
         return null;
     }
 
     return (
         <div className="max-w-2xl mx-auto space-y-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><ShieldCheck className="h-6 w-6" /><span>Two-Factor Authentication</span></CardTitle>
+                    <CardDescription>Add an extra layer of security to your account using SMS.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isTwoFactorEnabled ? (
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label className="font-medium">Status: Enabled</Label>
+                                <p className="text-xs text-muted-foreground">You are receiving security codes via SMS.</p>
+                            </div>
+                            <Button variant="destructive" onClick={handleDisable2FA} disabled={isLoading}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Disable
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                             <div className="space-y-0.5">
+                                <Label className="font-medium">Status: Disabled</Label>
+                                <p className="text-xs text-muted-foreground">Protect your account with 2FA.</p>
+                            </div>
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button onClick={() => setStep(1)}>Enable</Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+                                        <DialogDescription>
+                                            {step === 1 ? 'Enter your phone number to receive a verification code.' : 'Enter the 6-digit code sent to your phone.'}
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    {step === 1 ? (
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="phone" className="text-right">Phone</Label>
+                                                <Input id="phone" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+14155552671" className="col-span-3" />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="code" className="text-right">Code</Label>
+                                                <Input id="code" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} placeholder="123456" className="col-span-3" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    <DialogFooter>
+                                        <Button type="button" onClick={step === 1 ? handleSendCode : handleVerifyCode} disabled={isLoading}>
+                                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                             {step === 1 ? 'Send Code' : 'Verify & Enable'}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">

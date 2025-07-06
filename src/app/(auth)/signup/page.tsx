@@ -25,6 +25,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -63,6 +65,7 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
+  enableTwoFactor: z.boolean().default(false).optional(),
 });
 
 export default function SignupPage() {
@@ -77,6 +80,7 @@ export default function SignupPage() {
       name: '',
       email: '',
       password: '',
+      enableTwoFactor: false,
     },
   });
 
@@ -98,6 +102,10 @@ export default function SignupPage() {
         values.password
       );
       await updateProfile(userCredential.user, { displayName: values.name });
+
+      // Note: Logic to handle `values.enableTwoFactor` would be implemented here,
+      // likely redirecting to a 2FA setup page on first login.
+      
       router.push('/');
     } catch (error: any) {
       toast({
@@ -185,6 +193,26 @@ export default function SignupPage() {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="enableTwoFactor"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Enable Two-Factor Authentication</FormLabel>
+                    <FormDescription>
+                      Secure your account with an extra layer of protection using SMS.
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />
