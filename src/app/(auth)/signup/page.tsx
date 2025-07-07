@@ -87,6 +87,8 @@ const formSchema = z.object({
   gender: z.string({
     required_error: "Please select a gender.",
   }),
+  race: z.string().optional(),
+  sexualOrientation: z.string().optional(),
   city: z.string().min(1, { message: 'City is required.' }),
   state: z.string().min(1, { message: 'State is required.' }),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
@@ -134,6 +136,8 @@ export default function SignupPage() {
       email: '',
       password: '',
       gender: '',
+      race: '',
+      sexualOrientation: '',
       city: '',
       state: '',
       occupations: [],
@@ -492,6 +496,56 @@ export default function SignupPage() {
                       <SelectItem value="female">Female</SelectItem>
                       <SelectItem value="non-binary">Non-binary</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="race"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Race</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your race" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem>
+                      <SelectItem value="asian">Asian</SelectItem>
+                      <SelectItem value="black">Black or African American</SelectItem>
+                      <SelectItem value="hispanic">Hispanic or Latino</SelectItem>
+                      <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem>
+                      <SelectItem value="white">White</SelectItem>
+                      <SelectItem value="two-or-more">Two or More Races</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="sexualOrientation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sexual Orientation</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your sexual orientation" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="straight">Straight</SelectItem>
+                      <SelectItem value="lgbtq">LGBTQ</SelectItem>
                       <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                     </SelectContent>
                   </Select>

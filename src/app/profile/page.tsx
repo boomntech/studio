@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Camera } from 'lucide-react';
+import { RainbowIcon } from '@/components/rainbow-icon';
 
 const user = {
   name: 'Boomn User',
@@ -11,6 +12,7 @@ const user = {
   bio: 'Exploring the future of social media, one post at a time. #tech #social #boomn',
   avatarUrl: 'https://placehold.co/128x128.png',
   bannerUrl: 'https://placehold.co/1200x300.png',
+  sexualOrientation: 'lgbtq',
   stats: {
     posts: 124,
     followers: '1.2k',
@@ -54,7 +56,10 @@ export default function ProfilePage() {
             <div className="mt-4 sm:mt-0 sm:flex-1">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold">{user.name}</h1>
+                  <h1 className="text-2xl font-bold flex items-center gap-2">
+                    {user.name}
+                    {user.sexualOrientation === 'lgbtq' && <RainbowIcon className="w-6 h-4 rounded-sm" />}
+                  </h1>
                   <p className="text-muted-foreground">{user.handle}</p>
                 </div>
                 <Button>Follow</Button>
