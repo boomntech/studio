@@ -1,7 +1,15 @@
+
+'use client';
+
+import { useState } from 'react';
 import { CreatePost } from '@/components/create-post';
 import { PostCard } from '@/components/post-card';
 import { StoriesBar } from '@/components/stories-bar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getRecommendedPosts, type RecommendedPost } from '@/ai/flows/get-recommended-posts';
+import { Button } from '@/components/ui/button';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const posts = [
   {
@@ -57,16 +65,43 @@ const posts = [
   },
 ];
 
+// In a real app, this would be fetched for the logged-in user.
+const mockUserProfile = {
+    interests: ['tech', 'coffee', 'design'],
+    occupation: ['Software Engineer'],
+    location: 'San Francisco, CA',
+    age: 30,
+    race: 'Asian',
+    sexualOrientation: 'lgbtq'
+};
+
+
 export default function Home() {
+  const { toast } = useToast();
+  const [recommendedPosts, setRecommendedPosts] = useState<RecommendedPost[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [feedGenerated, setFeedGenerated] = useState(false);
+
   const personalPosts = posts.filter((post) => post.type === 'personal');
   const businessPosts = posts.filter((post) => post.type === 'business');
 
-  // Mock user interests. In a real app, this would come from the user's profile.
-  const userInterests = ['coffee', 'tech', 'travel'];
-  
-  const recommendedPosts = posts.filter(post => 
-    post.tags?.some(tag => userInterests.includes(tag.toLowerCase()))
-  );
+  const handleGenerateFeed = async () => {
+    setIsLoading(true);
+    setFeedGenerated(true);
+    try {
+      const result = await getRecommendedPosts({ userProfile: mockUserProfile, posts: posts });
+      setRecommendedPosts(result.recommendedPosts);
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Generating Feed',
+        description: 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
 
   return (
@@ -82,15 +117,41 @@ export default function Home() {
         </TabsList>
         <TabsContent value="for-you" className="mt-6">
           <div className="space-y-4">
-            {recommendedPosts.length > 0 ? (
+             {!feedGenerated && (
+              <div className="text-center py-12 px-4 rounded-lg border border-dashed">
+                <Sparkles className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Your Personalized Feed</h3>
+                <p className="text-muted-foreground mb-6">
+                  Click the button to use AI to generate a 'For You' feed based on your profile and interests.
+                </p>
+                <Button onClick={handleGenerateFeed} disabled={isLoading}>
+                   {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  Generate My Feed
+                </Button>
+              </div>
+            )}
+
+            {isLoading && (
+                 <div className="text-center py-16 text-muted-foreground">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    <p className="mt-4">Building your personalized feed...</p>
+                </div>
+            )}
+            
+            {!isLoading && feedGenerated && recommendedPosts.length === 0 && (
+               <div className="text-center py-16 text-muted-foreground">
+                <p>Couldn't generate recommendations at this time.</p>
+              </div>
+            )}
+
+            {!isLoading && recommendedPosts.length > 0 && (
               recommendedPosts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))
-            ) : (
-               <div className="text-center py-16 text-muted-foreground">
-                <p>No posts match your interests yet.</p>
-                <p className="text-sm">Try adding more interests in your settings!</p>
-              </div>
             )}
           </div>
         </TabsContent>

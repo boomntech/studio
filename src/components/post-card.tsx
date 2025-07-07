@@ -4,33 +4,12 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Flame, ShoppingBag, Link as LinkIcon, CalendarPlus } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Flame, ShoppingBag, Link as LinkIcon, CalendarPlus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import type { RecommendedPost } from '@/ai/flows/get-recommended-posts';
 
-type PostAuthor = {
-  name: string;
-  avatarUrl: string;
-  handle: string;
-};
-
-type Post = {
-  id: string;
-  author: PostAuthor;
-  content: string;
-  imageUrl?: string;
-  dataAiHint?: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  timestamp: string;
-  type: 'personal' | 'business';
-  trending?: boolean;
-  websiteUrl?: string;
-  appointmentUrl?: string;
-  productUrl?: string;
-  tags?: string[];
-};
+type Post = RecommendedPost;
 
 interface PostCardProps {
   post: Post;
@@ -71,6 +50,12 @@ export function PostCard({ post }: PostCardProps) {
         </Button>
       </CardHeader>
       <CardContent className="px-4 pb-2">
+        {post.recommendationReason && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary p-2 rounded-md mb-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>{post.recommendationReason}</span>
+          </div>
+        )}
         <p className="whitespace-pre-wrap">{post.content}</p>
         {post.imageUrl && (
           <div className="mt-4 rounded-lg overflow-hidden border">
