@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/hooks/use-auth';
-import { getWallet, getTransactions, sendMoney, addMoney, type Wallet, type Transaction } from '@/services/walletService';
+import { getWallet, getTransactions, sendMoney, type Wallet, type Transaction } from '@/services/walletService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,6 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowDownLeft, ArrowUpRight, Plus, Send, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { CheckoutForm } from '@/components/checkout-form';
+
 
 // Form schema for sending money
 const sendMoneyFormSchema = z.object({
@@ -24,10 +28,9 @@ const sendMoneyFormSchema = z.object({
   amount: z.coerce.number().positive({ message: 'Amount must be positive.' }).min(0.01, { message: 'Amount must be at least $0.01.' }),
 });
 
-// Form schema for adding money
-const addMoneyFormSchema = z.object({
-  amount: z.coerce.number().positive({ message: 'Amount must be positive.' }).min(5.00, { message: 'Minimum deposit is $5.00.' }),
-});
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
+    ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) 
+    : Promise.resolve(null);
 
 export default function WalletPage() {
   const { user } = useAuth();
@@ -45,13 +48,6 @@ export default function WalletPage() {
     defaultValues: {
       username: '',
       amount: 0,
-    },
-  });
-
-  const addMoneyForm = useForm<z.infer<typeof addMoneyFormSchema>>({
-    resolver: zodResolver(addMoneyFormSchema),
-    defaultValues: {
-      amount: 5.00,
     },
   });
 
@@ -73,6 +69,9 @@ export default function WalletPage() {
   }, [user, toast]);
 
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        console.warn("Stripe publishable key is not set. Payment functionality will be disabled.");
+    }
     fetchWalletData();
   }, [fetchWalletData]);
 
@@ -92,21 +91,15 @@ export default function WalletPage() {
     }
   };
 
-  const onAddMoneySubmit = async (values: z.infer<typeof addMoneyFormSchema>) => {
-    if (!user) return;
-    setIsProcessing(true);
-    try {
-      await addMoney(user.uid, values.amount);
-      toast({ title: 'Success!', description: `$${values.amount.toFixed(2)} has been added to your wallet.` });
-      addMoneyForm.reset();
-      setIsAddDialogOpen(false);
-      fetchWalletData();
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Transaction Failed', description: error.message });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  const handleSuccessfulDeposit = () => {
+    setIsAddDialogOpen(false);
+    fetchWalletData();
+    toast({
+        title: "Deposit Successful!",
+        description: "The funds have been added to your wallet.",
+    });
+  }
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -142,7 +135,7 @@ export default function WalletPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="h-20 flex-col gap-2">
+                <Button variant="outline" className="h-20 flex-col gap-2" disabled={!stripePromise}>
                     <Plus className="w-6 h-6" />
                     <span>Add Money</span>
                 </Button>
@@ -151,37 +144,24 @@ export default function WalletPage() {
                 <DialogHeader>
                     <DialogTitle>Add Money to Wallet</DialogTitle>
                     <DialogDescription>
-                        Enter the amount you want to add. For now, this is a simulation. In a real app, you would enter your card details here.
+                        Enter the amount and your payment details below.
                     </DialogDescription>
                 </DialogHeader>
-                <Form {...addMoneyForm}>
-                    <form onSubmit={addMoneyForm.handleSubmit(onAddMoneySubmit)} className="space-y-4">
-                         <FormField
-                            control={addMoneyForm.control}
-                            name="amount"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Amount (USD)</FormLabel>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                                <span className="text-muted-foreground sm:text-sm">$</span>
-                                            </div>
-                                            <Input type="number" placeholder="5.00" className="pl-7" {...field} />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <DialogFooter>
-                            <Button type="submit" disabled={isProcessing}>
-                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Add {formatCurrency(addMoneyForm.getValues('amount'))}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
+                 {stripePromise && (
+                    <Elements stripe={stripePromise} options={{
+                        // In a real app, you would fetch a clientSecret from your backend
+                        // and pass it here to initialize the payment flow.
+                        // clientSecret: 'pi_...', 
+                        mode: 'payment',
+                        amount: 500, // example: 500 cents = $5.00
+                        currency: 'usd',
+                        appearance: {
+                            theme: 'stripe'
+                        }
+                    }}>
+                        <CheckoutForm onSuccess={handleSuccessfulDeposit} />
+                    </Elements>
+                 )}
             </DialogContent>
         </Dialog>
         
