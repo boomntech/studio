@@ -9,18 +9,24 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+import { Timestamp } from 'firebase/firestore';
+
 
 const UserProfileSchema = z.object({
+  name: z.string(),
+  username: z.string(),
   interests: z.array(z.string()).describe("A list of the user's interests."),
-  occupation: z.array(z.string()).optional().describe("The user's occupation(s)."),
-  location: z.string().optional().describe("The user's city and state."),
-  age: z.number().optional().describe("The user's age."),
-  race: z.string().optional().describe("The user's race."),
-  sexualOrientation: z.string().optional().describe("The user's sexual orientation."),
+  occupations: z.array(z.string()).optional().describe("The user's occupation(s)."),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  gender: z.string().optional(),
+  race: z.string().optional(),
+  sexualOrientation: z.string().optional(),
 });
 
 const PostAuthorSchema = z.object({
+  uid: z.string(),
   name: z.string(),
   avatarUrl: z.string(),
   handle: z.string(),
@@ -33,9 +39,15 @@ const PostSchema = z.object({
   imageUrl: z.string().optional(),
   dataAiHint: z.string().optional(),
   likes: z.number(),
+  likedBy: z.array(z.string()).optional(),
   comments: z.number(),
   shares: z.number(),
-  timestamp: z.string(),
+  timestamp: z.any().transform((val) => {
+    if (val instanceof Timestamp) {
+      return val.toDate().toISOString();
+    }
+    return val;
+  }).describe("The timestamp of the post as an ISO string."),
   type: z.enum(['personal', 'business']),
   trending: z.boolean().optional(),
   websiteUrl: z.string().optional(),
@@ -101,6 +113,7 @@ const getRecommendedPostsFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
+    // The Zod transform handles the timestamp conversion now.
     return output!;
   }
 );

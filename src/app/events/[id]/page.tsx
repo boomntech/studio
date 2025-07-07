@@ -1,22 +1,62 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Ticket } from 'lucide-react';
-
-const eventDetails = {
-  id: '1',
-  title: 'Summer Music Fest',
-  date: 'August 15, 2024',
-  time: '12:00 PM - 10:00 PM',
-  location: 'Central Park, NYC',
-  image: 'https://placehold.co/1200x400.png',
-  dataAiHint: 'music festival crowd',
-  description: 'Join us for an unforgettable day of live music at the heart of New York City. Summer Music Fest brings together a diverse lineup of top artists from rock, pop, hip-hop, and electronic music. Enjoy delicious food from local vendors, interactive art installations, and a vibrant atmosphere. This is the ultimate summer celebration you won\'t want to miss!',
-  ticketLink: '#',
-};
+import { Calendar, MapPin, Ticket, Loader2 } from 'lucide-react';
+import { getEventById, type Event } from '@/services/eventService';
+import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch event details based on params.id
-  const event = eventDetails;
+  const [event, setEvent] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!params.id) return;
+
+    const fetchEvent = async () => {
+        try {
+            const fetchedEvent = await getEventById(params.id);
+            if (fetchedEvent) {
+                setEvent(fetchedEvent);
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Event Not Found',
+                });
+            }
+        } catch (error) {
+            console.error(error);
+             toast({
+                variant: 'destructive',
+                title: 'Error Fetching Event',
+                description: 'Could not load event details.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchEvent();
+  }, [params.id, toast]);
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-96">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
+
+  if (!event) {
+    return (
+         <div className="text-center py-16 text-muted-foreground">
+            <h1 className="text-2xl font-bold">Event Not Found</h1>
+            <p>The event you are looking for does not exist or may have been removed.</p>
+        </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -36,7 +76,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-muted-foreground" />
               <span>
-                {event.date} at {event.time}
+                {format(event.date, 'PPP')} {event.time && `at ${event.time}`}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -45,9 +85,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             </div>
           </div>
           <div className="flex items-center justify-center md:justify-end">
-             <Button size="lg">
-                <Ticket className="mr-2 h-5 w-5" />
-                Buy Tickets
+             <Button size="lg" asChild disabled={!event.ticketLink}>
+                <a href={event.ticketLink || '#'} target="_blank" rel="noopener noreferrer">
+                    <Ticket className="mr-2 h-5 w-5" />
+                    Buy Tickets
+                </a>
               </Button>
           </div>
         </div>

@@ -12,6 +12,9 @@ import {
   Timestamp,
   where,
   writeBatch,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -19,6 +22,7 @@ export interface UserProfile {
   name: string;
   username: string;
   email: string;
+  avatarUrl?: string;
   dob?: Date;
   gender?: string;
   race?: string;
@@ -27,6 +31,7 @@ export interface UserProfile {
   state?: string;
   occupations?: string[];
   interests?: string[];
+  savedPosts?: string[]; // Array of post IDs
   createdAt?: any;
   updatedAt?: any;
 }
@@ -37,7 +42,7 @@ export interface UserProfile {
  * @param uid The user's unique ID from Firebase Auth.
  * @param profileData The user profile data to save.
  */
-export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt'>) => {
+export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt' | 'savedPosts'>) => {
   if (!firestore) throw new Error("Firestore not initialized");
   const userDocRef = doc(firestore, 'users', uid);
   const docSnap = await getDoc(userDocRef);
@@ -55,6 +60,7 @@ export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile
     await setDoc(userDocRef, {
       ...dataToSave,
       createdAt: serverTimestamp(),
+      savedPosts: [],
     });
   }
 };
@@ -118,4 +124,34 @@ export const connectWithUser = async (currentUserId: string, targetUserId: strin
   batch.set(targetUserConnectionDoc, connectionData);
 
   await batch.commit();
+};
+
+
+/**
+ * Toggles a saved post for a user.
+ * Adds or removes a post ID from the user's `savedPosts` array.
+ * @param userId The user's unique ID.
+ * @param postId The ID of the post to save or unsave.
+ */
+export const toggleSavePost = async (userId: string, postId: string) => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    const userRef = doc(firestore, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const savedPosts = userData.savedPosts || [];
+
+        if (savedPosts.includes(postId)) {
+            // Unsave
+            await updateDoc(userRef, {
+                savedPosts: arrayRemove(postId)
+            });
+        } else {
+            // Save
+            await updateDoc(userRef, {
+                savedPosts: arrayUnion(postId)
+            });
+        }
+    }
 };
