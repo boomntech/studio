@@ -1,133 +1,128 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useAgora } from '@/hooks/use-agora';
+import type { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng';
+
+const appId = process.env.NEXT_PUBLIC_AGORA_APP_ID || '';
+const token = process.env.NEXT_PUBLIC_AGORA_TEMP_TOKEN || null;
+
+const VideoPlayer = ({
+  videoTrack,
+  style,
+}: {
+  videoTrack: ICameraVideoTrack | IMicrophoneAudioTrack;
+  style?: React.CSSProperties;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    videoTrack.play(ref.current);
+    return () => {
+      videoTrack.stop();
+    };
+  }, [videoTrack]);
+
+  return <div ref={ref} style={{ width: '100%', height: '100%', ...style }}></div>;
+};
+
 
 export default function VideoCallPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [hasPermissions, setHasPermissions] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const channelName = params.id;
 
-  // In a real app, 'params.id' would be used to establish a connection
-  // with the specific user via a signaling server.
+  const {
+    localAudioTrack,
+    localVideoTrack,
+    remoteUsers,
+    isJoined,
+    isLoading,
+    isAudioMuted,
+    isVideoMuted,
+    leave,
+    toggleAudio,
+    toggleVideo,
+  } = useAgora({ appId, channelName, token });
 
   useEffect(() => {
-    const getMediaPermissions = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-        setHasPermissions(true);
-        // Simulate connection time
-        setTimeout(() => setIsConnecting(false), 2000);
-      } catch (error) {
-        console.error('Error accessing media devices.', error);
-        setHasPermissions(false);
+    if (!appId || !token) {
         toast({
-          variant: 'destructive',
-          title: 'Permissions Denied',
-          description: 'Camera and microphone access are required for video calls.',
+            variant: 'destructive',
+            title: 'Agora Not Configured',
+            description: 'Please add your Agora App ID and a temporary token to the .env file.',
         });
-      }
-    };
-
-    getMediaPermissions();
-
-    // Clean up the stream when the component unmounts
-    return () => {
-      if (localVideoRef.current && localVideoRef.current.srcObject) {
-        const stream = localVideoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [toast]);
-
-  const toggleAudio = () => {
-    if (localVideoRef.current?.srcObject) {
-      const stream = localVideoRef.current.srcObject as MediaStream;
-      stream.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-        setIsMuted(!track.enabled);
-      });
+        router.push('/network');
     }
-  };
+  }, [router, toast]);
 
-  const toggleVideo = () => {
-     if (localVideoRef.current?.srcObject) {
-      const stream = localVideoRef.current.srcObject as MediaStream;
-      stream.getVideoTracks().forEach(track => {
-        track.enabled = !track.enabled;
-        setIsVideoOff(!track.enabled);
-      });
-    }
-  };
-
-  const endCall = () => {
-    // In a real app, this would also signal the end of the call to the other peer.
+  const handleEndCall = async () => {
+    await leave();
     router.push('/network');
   };
 
+  const remoteUser = remoteUsers[0];
+
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
-      <div className="relative flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Remote Video */}
-        <Card className="flex items-center justify-center bg-muted overflow-hidden">
-          {isConnecting ? (
-             <div className="text-center text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                <p>Connecting to user...</p>
-             </div>
-          ) : (
-            <div className="w-full h-full relative">
-                 <video ref={remoteVideoRef} className="w-full h-full object-cover" autoPlay playsInline data-ai-hint="person video call" />
-                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="text-center text-white">
-                        <p className="font-semibold">Waiting for user...</p>
-                        <p className="text-sm">This is a placeholder for the remote video stream.</p>
-                    </div>
-                 </div>
+       {isLoading && (
+         <div className="flex-1 flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />
+                <p className="text-lg">Connecting to video service...</p>
             </div>
-          )}
-        </Card>
+         </div>
+      )}
 
-        {/* Local Video */}
-        <Card className="overflow-hidden">
-             {!hasPermissions ? (
-                 <div className="h-full flex flex-col items-center justify-center p-4">
-                    <Alert variant="destructive">
-                      <VideoOff className="h-4 w-4" />
-                      <AlertTitle>Permissions Required</AlertTitle>
-                      <AlertDescription>
-                        You need to allow camera and microphone access in your browser to start a video call.
-                      </AlertDescription>
-                    </Alert>
-                 </div>
-             ) : (
-                 <video ref={localVideoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-             )}
-        </Card>
-      </div>
+      {!isLoading && (
+        <div className="relative flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Remote Video */}
+            <Card className="flex items-center justify-center bg-muted overflow-hidden">
+                {remoteUser && remoteUser.hasVideo ? (
+                    <VideoPlayer videoTrack={remoteUser.videoTrack!} />
+                ) : (
+                    <div className="text-center text-muted-foreground">
+                       <User className="h-12 w-12 mx-auto mb-2" />
+                       <p className="font-semibold">Waiting for other user to join...</p>
+                    </div>
+                )}
+            </Card>
 
+            {/* Local Video */}
+            <Card className="overflow-hidden">
+                {localVideoTrack ? (
+                    <VideoPlayer videoTrack={localVideoTrack} />
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center p-4">
+                        <Alert variant="destructive">
+                            <VideoOff className="h-4 w-4" />
+                            <AlertTitle>Camera/Mic Issue</AlertTitle>
+                            <AlertDescription>
+                            Could not access your camera or microphone. Please check your browser permissions.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                )}
+            </Card>
+        </div>
+      )}
+      
       {/* Controls */}
       <div className="flex justify-center items-center gap-4 mt-4 p-4 bg-card rounded-lg shadow-sm">
-        <Button variant={isMuted ? 'destructive' : 'secondary'} size="icon" className="w-16 h-16 rounded-full" onClick={toggleAudio} disabled={!hasPermissions}>
-          {isMuted ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+        <Button variant={isAudioMuted ? 'destructive' : 'secondary'} size="icon" className="w-16 h-16 rounded-full" onClick={toggleAudio} disabled={!isJoined}>
+          {isAudioMuted ? <MicOff className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
         </Button>
-        <Button variant={isVideoOff ? 'destructive' : 'secondary'} size="icon" className="w-16 h-16 rounded-full" onClick={toggleVideo} disabled={!hasPermissions}>
-          {isVideoOff ? <VideoOff className="h-8 w-8" /> : <Video className="h-8 w-8" />}
+        <Button variant={isVideoMuted ? 'destructive' : 'secondary'} size="icon" className="w-16 h-16 rounded-full" onClick={toggleVideo} disabled={!isJoined}>
+          {isVideoMuted ? <VideoOff className="h-8 w-8" /> : <Video className="h-8 w-8" />}
         </Button>
-        <Button variant="destructive" size="icon" className="w-16 h-16 rounded-full" onClick={endCall}>
+        <Button variant="destructive" size="icon" className="w-16 h-16 rounded-full" onClick={handleEndCall} disabled={!isJoined}>
           <PhoneOff className="h-8 w-8" />
         </Button>
       </div>
