@@ -19,6 +19,7 @@ import {
   type ConfirmationResult,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { saveUserProfile, isUsernameTaken } from '@/services/userService';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -97,12 +98,11 @@ const formSchema = z.object({
   enableBiometrics: z.boolean().default(false).optional(),
 });
 
-// Mock function to simulate checking username availability
+// Real function to check username availability against Firestore
 const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; suggestions: string[] }> => {
-    const takenUsernames = ['admin', 'root', 'test', 'user', 'boomn', 'boomnuser'];
     console.log(`Checking username: ${username}`);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-    if (takenUsernames.includes(username.toLowerCase())) {
+    const isTaken = await isUsernameTaken(username);
+    if (isTaken) {
         return {
             available: false,
             suggestions: [`${username}${Math.floor(Math.random() * 100)}`, `${username}_pro`, `the_${username}`],
@@ -217,9 +217,13 @@ export default function SignupPage() {
         values.password
       );
       await updateProfile(userCredential.user, { displayName: values.name });
-      // In a real app, you would save the username and other profile details 
-      // to a Firestore database here
-      console.log('User profile to save:', values);
+      
+      // Save extra profile data to Firestore
+      const { password, enableTwoFactor, enableBiometrics, ...profileData } = values;
+      await saveUserProfile(userCredential.user.uid, {
+        ...profileData,
+        email: userCredential.user.email!,
+      });
       
       router.push('/');
     } catch (error: any) {

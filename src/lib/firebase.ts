@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAnalytics, type Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -15,12 +16,14 @@ const firebaseConfig = {
 // Initialize Firebase
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let firestore: Firestore | null = null;
 let analytics: Analytics | null = null;
 
 if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
   try {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    firestore = getFirestore(app);
     if (firebaseConfig.measurementId) {
       analytics = getAnalytics(app);
     }
@@ -28,8 +31,9 @@ if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
     console.error('Failed to initialize Firebase', error);
     app = null;
     auth = null;
+    firestore = null;
     analytics = null;
   }
 }
 
-export { app, auth, analytics };
+export { app, auth, firestore, analytics };

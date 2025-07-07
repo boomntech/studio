@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
+import { getUserProfile, saveUserProfile, isUsernameTaken } from '@/services/userService';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -39,15 +40,13 @@ const profileFormSchema = z.object({
   interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
 });
 
-// Mock function to simulate checking username availability
+// Real function to check username availability against Firestore
 const checkUsernameAvailability = async (username: string, currentUsername?: string): Promise<{ available: boolean; suggestions: string[] }> => {
-    const takenUsernames = ['admin', 'root', 'test', 'user', 'boomn'];
-    console.log(`Checking username: ${username}`);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
     if (username.toLowerCase() === currentUsername?.toLowerCase()) {
       return { available: true, suggestions: [] };
     }
-    if (takenUsernames.includes(username.toLowerCase())) {
+    const isTaken = await isUsernameTaken(username);
+    if (isTaken) {
         return {
             available: false,
             suggestions: [`${username}${Math.floor(Math.random() * 100)}`, `${username}_pro`, `the_${username}`],
@@ -148,25 +147,33 @@ export default function SettingsPage() {
         }
 
         if (user) {
-            const currentUsername = user.email?.split('@')[0] || 'boomnuser';
-            setInitialUsername(currentUsername);
+            const fetchProfile = async () => {
+                if (!user) return;
+                const profile = await getUserProfile(user.uid);
+                
+                // Set initial username for checking logic
+                const currentUsername = profile?.username || user.email?.split('@')[0] || 'boomnuser';
+                setInitialUsername(currentUsername);
+    
+                // Populate form with Firestore data, falling back to Auth data
+                profileForm.reset({
+                    name: profile?.name || user.displayName || '',
+                    username: currentUsername,
+                    dob: profile?.dob, // getUserProfile converts timestamp to Date
+                    gender: profile?.gender || '',
+                    race: profile?.race || '',
+                    sexualOrientation: profile?.sexualOrientation || '',
+                    city: profile?.city || '',
+                    state: profile?.state || '',
+                    occupations: profile?.occupations || [],
+                    interests: profile?.interests || [],
+                });
+            };
+    
+            fetchProfile();
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
              // In a real app, you'd check if a passkey is registered for the user
             setIsBiometricEnabled(false); 
-            profileForm.reset({ 
-                name: user.displayName || '',
-                username: currentUsername,
-                // These would be fetched from your database (e.g., Firestore)
-                // For demonstration, we'll leave them as default or empty.
-                dob: undefined,
-                gender: '',
-                race: '',
-                sexualOrientation: '',
-                city: '',
-                state: '',
-                occupations: [], // Fetch from DB in a real app
-                interests: [], // Fetch from DB in a real app
-            });
         }
     }, [user, profileForm]);
     
@@ -189,19 +196,25 @@ export default function SettingsPage() {
     const handleProfileUpdate = async (values: z.infer<typeof profileFormSchema>) => {
         if (!user) return;
         
-        if (values.username !== initialUsername && usernameStatus !== 'available') {
+        if (values.username.toLowerCase() !== initialUsername.toLowerCase() && usernameStatus !== 'available') {
             profileForm.setError('username', { type: 'manual', message: 'Please choose an available username or keep your current one.' });
             return;
         }
 
         setIsProfileLoading(true);
         try {
-            await updateProfile(user, { displayName: values.name });
-            // In a real app, you would also update the username and other profile
-            // details in your database (e.g., Firestore) here.
-            console.log("Updating profile with:", values);
-            if (values.username && values.username !== initialUsername) {
-              console.log("Updating username to:", values.username);
+            // Update display name in Firebase Auth
+            if (values.name !== user.displayName) {
+                await updateProfile(user, { displayName: values.name });
+            }
+    
+            // Save all profile data to Firestore
+            await saveUserProfile(user.uid, {
+                email: user.email!,
+                ...values,
+            });
+            
+            if (values.username && values.username.toLowerCase() !== initialUsername.toLowerCase()) {
               setInitialUsername(values.username); // Update the initial username to the new one
             }
             toast({ title: 'Profile Updated', description: 'Your information has been successfully updated.' });
