@@ -9,6 +9,7 @@ import {
   query,
   orderBy,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 
 export interface Event {
@@ -56,3 +57,22 @@ export const getEventById = async (id: string): Promise<Event | null> => {
     }
     return null;
 }
+
+
+/**
+ * Saves a batch of events to the 'events' collection in Firestore.
+ * @param events An array of event objects to save.
+ */
+export const saveEventsBatch = async (events: Omit<Event, 'id'>[]): Promise<void> => {
+  if (!firestore) throw new Error("Firestore not initialized");
+
+  const batch = writeBatch(firestore);
+  const eventsCollection = collection(firestore, 'events');
+
+  events.forEach(eventData => {
+    const newEventRef = doc(eventsCollection); // Create a new document with a unique ID
+    batch.set(newEventRef, eventData);
+  });
+
+  await batch.commit();
+};

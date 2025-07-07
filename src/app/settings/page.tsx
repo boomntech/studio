@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -644,6 +645,25 @@ export default function SettingsPage() {
                             onCheckedChange={handleThemeChange}
                         />
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                        <UploadCloud className="h-6 w-6" />
+                        <span>Data Management</span>
+                    </CardTitle>
+                    <CardDescription>
+                        Manage your application's data, like importing new events.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Button asChild>
+                        <Link href="/settings/import">
+                            Import Events
+                        </Link>
+                    </Button>
                 </CardContent>
             </Card>
 
