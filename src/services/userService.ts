@@ -1,3 +1,4 @@
+
 'use client'; 
 
 import { firestore } from '@/lib/firebase';
@@ -100,6 +101,26 @@ export const isUsernameTaken = async (username: string): Promise<boolean> => {
     const querySnapshot = await getDocs(q);
     return !querySnapshot.empty;
 };
+
+/**
+ * Finds a user by their username (case-insensitive).
+ * @param username The username to search for.
+ * @returns The user profile data, or null if not found.
+ */
+export const findUserByUsername = async (username: string): Promise<UserProfile | null> => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    const q = query(collection(firestore, 'users'), where("username", "==", username.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return null;
+    }
+    const userDoc = querySnapshot.docs[0];
+    const data = userDoc.data();
+    if (data.dob && data.dob instanceof Timestamp) {
+        data.dob = data.dob.toDate();
+    }
+    return data as UserProfile;
+}
 
 /**
  * Creates a connection between two users in Firestore.
