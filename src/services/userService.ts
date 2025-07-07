@@ -8,9 +8,10 @@ import {
   getDocs,
   query,
   setDoc,
-  where,
   serverTimestamp,
   Timestamp,
+  where,
+  writeBatch,
 } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -92,4 +93,29 @@ export const isUsernameTaken = async (username: string): Promise<boolean> => {
     const q = query(collection(firestore, 'users'), where("username", "==", username.toLowerCase()));
     const querySnapshot = await getDocs(q);
     return !querySnapshot.empty;
+};
+
+/**
+ * Creates a connection between two users in Firestore.
+ * This function creates a document in a 'connections' subcollection for both users.
+ * @param currentUserId The ID of the user initiating the connection.
+ * @param targetUserId The ID of the user to connect with.
+ */
+export const connectWithUser = async (currentUserId: string, targetUserId: string) => {
+  if (!firestore) throw new Error("Firestore not initialized");
+
+  const currentUserConnectionDoc = doc(firestore, 'users', currentUserId, 'connections', targetUserId);
+  const targetUserConnectionDoc = doc(firestore, 'users', targetUserId, 'connections', currentUserId);
+
+  const connectionData = {
+    status: 'connected',
+    connectedAt: serverTimestamp(),
+  };
+
+  // Use a batch write to ensure both documents are created atomically.
+  const batch = writeBatch(firestore);
+  batch.set(currentUserConnectionDoc, connectionData);
+  batch.set(targetUserConnectionDoc, connectionData);
+
+  await batch.commit();
 };

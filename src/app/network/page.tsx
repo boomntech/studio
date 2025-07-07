@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Check, X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { connectWithUser } from '@/services/userService';
 
 const networkUsers = [
   {
@@ -99,6 +102,8 @@ const getRandomUser = (currentId?: string) => {
 export default function NetworkPage() {
   const [currentUser, setCurrentUser] = useState<(typeof networkUsers)[0] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Start with an initial user
@@ -120,11 +125,40 @@ export default function NetworkPage() {
     showNextUser(currentUser.id);
   };
   
-  const handleConnect = () => {
-    if (!currentUser) return;
-    // Placeholder for connect logic
-    console.log(`Connecting with ${currentUser.name}`);
-    showNextUser(currentUser.id);
+  const handleConnect = async () => {
+    if (!currentUser || !user) {
+        toast({
+            variant: 'destructive',
+            title: 'Unable to connect',
+            description: 'You must be logged in to connect with other users.'
+        });
+        return;
+    }
+    
+    if (currentUser.id === user.uid) {
+        toast({
+            variant: 'destructive',
+            title: 'Oops!',
+            description: 'You cannot connect with yourself.'
+        });
+        showNextUser(currentUser.id);
+        return;
+    }
+
+    try {
+        await connectWithUser(user.uid, currentUser.id);
+        toast({
+            title: 'Connected!',
+            description: `You are now connected with ${currentUser.name}.`
+        });
+        showNextUser(currentUser.id);
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Connection Failed',
+            description: error.message
+        });
+    }
   };
 
   if (!currentUser) {
