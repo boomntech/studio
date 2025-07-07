@@ -49,7 +49,7 @@ export default function RootLayout({
           <SidebarProvider>
             <Sidebar>
               <SidebarHeader>
-                <div className="flex items-center gap-2 p-2">
+                <div className="flex w-full items-center justify-center gap-2">
                   <BoomnLogo className="w-8 h-8 text-sidebar-primary" />
                   <h1 className="text-xl font-bold text-sidebar-foreground">Boomn</h1>
                 </div>
