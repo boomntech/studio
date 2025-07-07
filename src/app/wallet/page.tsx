@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/hooks/use-auth';
-import { getWallet, getTransactions, sendMoney, type Wallet, type Transaction } from '@/services/walletService';
+import { getWallet, getTransactions, sendMoney, addMoney, type Wallet, type Transaction } from '@/services/walletService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,6 +24,11 @@ const sendMoneyFormSchema = z.object({
   amount: z.coerce.number().positive({ message: 'Amount must be positive.' }).min(0.01, { message: 'Amount must be at least $0.01.' }),
 });
 
+// Form schema for adding money
+const addMoneyFormSchema = z.object({
+  amount: z.coerce.number().positive({ message: 'Amount must be positive.' }).min(5.00, { message: 'Minimum deposit is $5.00.' }),
+});
+
 export default function WalletPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -31,14 +36,22 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const form = useForm<z.infer<typeof sendMoneyFormSchema>>({
+  const sendMoneyForm = useForm<z.infer<typeof sendMoneyFormSchema>>({
     resolver: zodResolver(sendMoneyFormSchema),
     defaultValues: {
       username: '',
       amount: 0,
+    },
+  });
+
+  const addMoneyForm = useForm<z.infer<typeof addMoneyFormSchema>>({
+    resolver: zodResolver(addMoneyFormSchema),
+    defaultValues: {
+      amount: 5.00,
     },
   });
 
@@ -65,18 +78,33 @@ export default function WalletPage() {
 
   const onSendMoneySubmit = async (values: z.infer<typeof sendMoneyFormSchema>) => {
     if (!user) return;
-    setIsSending(true);
+    setIsProcessing(true);
     try {
       await sendMoney(user.uid, values.username, values.amount);
       toast({ title: 'Success!', description: `You sent $${values.amount.toFixed(2)} to @${values.username}.` });
-      form.reset();
+      sendMoneyForm.reset();
       setIsSendDialogOpen(false);
-      // Refetch data to show updated balance and transactions
       fetchWalletData();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Transaction Failed', description: error.message });
     } finally {
-      setIsSending(false);
+      setIsProcessing(false);
+    }
+  };
+
+  const onAddMoneySubmit = async (values: z.infer<typeof addMoneyFormSchema>) => {
+    if (!user) return;
+    setIsProcessing(true);
+    try {
+      await addMoney(user.uid, values.amount);
+      toast({ title: 'Success!', description: `$${values.amount.toFixed(2)} has been added to your wallet.` });
+      addMoneyForm.reset();
+      setIsAddDialogOpen(false);
+      fetchWalletData();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Transaction Failed', description: error.message });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -112,10 +140,51 @@ export default function WalletPage() {
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Button variant="outline" className="h-20 flex-col gap-2" disabled>
-          <Plus className="w-6 h-6" />
-          <span>Add Money</span>
-        </Button>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="h-20 flex-col gap-2">
+                    <Plus className="w-6 h-6" />
+                    <span>Add Money</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add Money to Wallet</DialogTitle>
+                    <DialogDescription>
+                        Enter the amount you want to add. For now, this is a simulation. In a real app, you would enter your card details here.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...addMoneyForm}>
+                    <form onSubmit={addMoneyForm.handleSubmit(onAddMoneySubmit)} className="space-y-4">
+                         <FormField
+                            control={addMoneyForm.control}
+                            name="amount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Amount (USD)</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span className="text-muted-foreground sm:text-sm">$</span>
+                                            </div>
+                                            <Input type="number" placeholder="5.00" className="pl-7" {...field} />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit" disabled={isProcessing}>
+                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Add {formatCurrency(addMoneyForm.getValues('amount'))}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+        
         <Button variant="outline" className="h-20 flex-col gap-2" disabled>
           <ArrowUpRight className="w-6 h-6" />
           <span>Withdraw</span>
@@ -133,10 +202,10 @@ export default function WalletPage() {
                     <DialogTitle>Send Money</DialogTitle>
                     <DialogDescription>Enter the username and amount you want to send.</DialogDescription>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSendMoneySubmit)} className="space-y-4">
+                <Form {...sendMoneyForm}>
+                    <form onSubmit={sendMoneyForm.handleSubmit(onSendMoneySubmit)} className="space-y-4">
                         <FormField
-                            control={form.control}
+                            control={sendMoneyForm.control}
                             name="username"
                             render={({ field }) => (
                                 <FormItem>
@@ -149,7 +218,7 @@ export default function WalletPage() {
                             )}
                         />
                          <FormField
-                            control={form.control}
+                            control={sendMoneyForm.control}
                             name="amount"
                             render={({ field }) => (
                                 <FormItem>
@@ -167,8 +236,8 @@ export default function WalletPage() {
                             )}
                         />
                         <DialogFooter>
-                            <Button type="submit" disabled={isSending}>
-                                {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" disabled={isProcessing}>
+                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Send
                             </Button>
                         </DialogFooter>

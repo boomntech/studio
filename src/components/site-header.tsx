@@ -20,6 +20,7 @@ function getTitle(pathname: string) {
   if (pathname.startsWith('/events/')) return 'Event Details';
   if (pathname.startsWith('/livestream/')) return 'Live Stream';
   if (pathname.startsWith('/network/call')) return 'Video Call';
+  if (pathname.startsWith('/wallet/')) return 'Wallet';
   return titles[pathname] || 'Boomn';
 }
 

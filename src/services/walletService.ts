@@ -157,3 +157,55 @@ export const sendMoney = async (fromUserId: string, toUsername: string, amount: 
         });
     });
 };
+
+/**
+ * (Simulated) Adds money to a user's wallet.
+ * In a real application, this function would be triggered after a successful
+ * payment intent from a payment provider like Stripe.
+ * @param userId The user's ID.
+ * @param amount The amount to add.
+ */
+export const addMoney = async (userId: string, amount: number) => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    if (amount <= 0) throw new Error("Amount must be positive.");
+
+    // TODO: In a real application, you would not call this directly from the client.
+    // 1. Create a payment intent on your backend with Stripe's API.
+    // 2. Use Stripe Elements on the frontend to confirm the payment.
+    // 3. On successful payment, Stripe sends a webhook to your backend.
+    // 4. Your backend webhook handler verifies the event and then calls this function to update the balance.
+
+    const walletRef = doc(firestore, 'wallets', userId);
+
+    await runTransaction(firestore, async (transaction) => {
+        const walletDoc = await transaction.get(walletRef);
+        
+        let currentBalance = 0;
+        if (walletDoc.exists()) {
+            currentBalance = walletDoc.data().balance;
+        } else {
+            // This case should ideally not be hit if getWallet is called first,
+            // but it's good practice to handle it.
+            transaction.set(walletRef, {
+                balance: 0,
+                currency: 'USD',
+                updatedAt: Timestamp.now(),
+            });
+        }
+
+        // Update balance
+        transaction.update(walletRef, {
+            balance: currentBalance + amount,
+            updatedAt: Timestamp.now(),
+        });
+
+        // Create transaction record
+        const transactionRef = doc(collection(firestore, 'wallets', userId, 'transactions'));
+        transaction.set(transactionRef, {
+            type: 'credit',
+            amount,
+            description: 'Deposit from payment provider',
+            timestamp: Timestamp.now(),
+        });
+    });
+};
