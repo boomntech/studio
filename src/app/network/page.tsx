@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Check, X, Loader2 } from 'lucide-react';
+import { X, Loader2, Video } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { connectWithUser } from '@/services/userService';
 
 const networkUsers = [
   {
@@ -102,8 +100,7 @@ const getRandomUser = (currentId?: string) => {
 export default function NetworkPage() {
   const [currentUser, setCurrentUser] = useState<(typeof networkUsers)[0] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     // Start with an initial user
@@ -125,40 +122,9 @@ export default function NetworkPage() {
     showNextUser(currentUser.id);
   };
   
-  const handleConnect = async () => {
-    if (!currentUser || !user) {
-        toast({
-            variant: 'destructive',
-            title: 'Unable to connect',
-            description: 'You must be logged in to connect with other users.'
-        });
-        return;
-    }
-    
-    if (currentUser.id === user.uid) {
-        toast({
-            variant: 'destructive',
-            title: 'Oops!',
-            description: 'You cannot connect with yourself.'
-        });
-        showNextUser(currentUser.id);
-        return;
-    }
-
-    try {
-        await connectWithUser(user.uid, currentUser.id);
-        toast({
-            title: 'Connected!',
-            description: `You are now connected with ${currentUser.name}.`
-        });
-        showNextUser(currentUser.id);
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Connection Failed',
-            description: error.message
-        });
-    }
+  const handleStartCall = () => {
+    if (!currentUser) return;
+    router.push(`/network/call/${currentUser.id}`);
   };
 
   if (!currentUser) {
@@ -205,9 +171,9 @@ export default function NetworkPage() {
             <X className="h-10 w-10" />
             <span className="sr-only">Skip</span>
           </Button>
-          <Button size="icon" className="w-24 h-24 rounded-full bg-green-500 hover:bg-green-600 text-white" onClick={handleConnect} disabled={isLoading}>
-            <Check className="h-10 w-10" />
-            <span className="sr-only">Connect</span>
+          <Button size="icon" className="w-24 h-24 rounded-full bg-green-500 hover:bg-green-600 text-white" onClick={handleStartCall} disabled={isLoading}>
+            <Video className="h-10 w-10" />
+            <span className="sr-only">Start Call</span>
           </Button>
         </div>
     </div>
