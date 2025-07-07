@@ -281,7 +281,7 @@ export default function SignupPage() {
     }
     setIsLinkLoading(true);
     const actionCodeSettings = {
-      url: `${window.location.origin}/login`, 
+      url: 'https://boom-n.com/login',
       handleCodeInApp: true,
     };
     try {
