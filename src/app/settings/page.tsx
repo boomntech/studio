@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { OccupationInput } from '@/components/occupation-input';
+import { InterestInput } from '@/components/interest-input';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -33,6 +34,7 @@ const profileFormSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
+  interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
 });
 
 // Mock function to simulate checking username availability
@@ -87,6 +89,7 @@ export default function SettingsPage() {
             city: '',
             state: '',
             occupations: [],
+            interests: [],
         },
     });
 
@@ -156,6 +159,7 @@ export default function SettingsPage() {
                 city: '',
                 state: '',
                 occupations: [], // Fetch from DB in a real app
+                interests: [], // Fetch from DB in a real app
             });
         }
     }, [user, profileForm]);
@@ -432,6 +436,22 @@ export default function SettingsPage() {
                                     </FormControl>
                                     <FormDescription>
                                         Select up to 5 occupations. Start typing to get AI-powered suggestions.
+                                    </FormDescription>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={profileForm.control}
+                                name="interests"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Interests</FormLabel>
+                                    <FormControl>
+                                        <InterestInput value={field.value ?? []} onChange={field.onChange} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Select up to 5 interests to personalize your content feed.
                                     </FormDescription>
                                     <FormMessage />
                                     </FormItem>

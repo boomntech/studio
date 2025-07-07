@@ -48,6 +48,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OccupationInput } from '@/components/occupation-input';
+import { InterestInput } from '@/components/interest-input';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -89,6 +90,7 @@ const formSchema = z.object({
   city: z.string().min(1, { message: 'City is required.' }),
   state: z.string().min(1, { message: 'State is required.' }),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
+  interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
   enableTwoFactor: z.boolean().default(false).optional(),
   enableBiometrics: z.boolean().default(false).optional(),
 });
@@ -135,6 +137,7 @@ export default function SignupPage() {
       city: '',
       state: '',
       occupations: [],
+      interests: [],
       enableTwoFactor: false,
       enableBiometrics: false,
     },
@@ -540,6 +543,23 @@ export default function SignupPage() {
                     </FormControl>
                     <FormDescription>
                         Select up to 5 occupations. Start typing to get AI-powered suggestions.
+                    </FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="interests"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Interests</FormLabel>
+                    <FormControl>
+                        <InterestInput value={field.value ?? []} onChange={field.onChange} />
+                    </FormControl>
+                    <FormDescription>
+                        Select up to 5 interests. This will help us recommend relevant content.
                     </FormDescription>
                     <FormMessage />
                     </FormItem>

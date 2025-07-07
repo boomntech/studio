@@ -29,6 +29,7 @@ type Post = {
   websiteUrl?: string;
   appointmentUrl?: string;
   productUrl?: string;
+  tags?: string[];
 };
 
 interface PostCardProps {

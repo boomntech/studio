@@ -19,6 +19,7 @@ const posts = [
     shares: 5,
     timestamp: '2h ago',
     type: 'personal',
+    tags: ['coffee', 'food', 'lifestyle'],
   },
   {
     id: '2',
@@ -34,6 +35,7 @@ const posts = [
     timestamp: '5h ago',
     type: 'personal',
     trending: true,
+    tags: ['travel', 'city', 'photography'],
   },
   {
     id: '3',
@@ -51,6 +53,7 @@ const posts = [
     websiteUrl: '#',
     appointmentUrl: '#',
     productUrl: '#',
+    tags: ['tech', 'social media', 'apps'],
   },
 ];
 
@@ -58,16 +61,39 @@ export default function Home() {
   const personalPosts = posts.filter((post) => post.type === 'personal');
   const businessPosts = posts.filter((post) => post.type === 'business');
 
+  // Mock user interests. In a real app, this would come from the user's profile.
+  const userInterests = ['coffee', 'tech', 'travel'];
+  
+  const recommendedPosts = posts.filter(post => 
+    post.tags?.some(tag => userInterests.includes(tag.toLowerCase()))
+  );
+
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <StoriesBar />
       <CreatePost />
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="for-you" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="for-you">For You</TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="business">Businesses</TabsTrigger>
         </TabsList>
+        <TabsContent value="for-you" className="mt-6">
+          <div className="space-y-4">
+            {recommendedPosts.length > 0 ? (
+              recommendedPosts.map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))
+            ) : (
+               <div className="text-center py-16 text-muted-foreground">
+                <p>No posts match your interests yet.</p>
+                <p className="text-sm">Try adding more interests in your settings!</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
         <TabsContent value="all" className="mt-6">
           <div className="space-y-4">
             {posts.map((post) => (
