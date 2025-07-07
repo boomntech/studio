@@ -36,7 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Fingerprint } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -73,11 +73,14 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
   const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  const anyLoading = isLoading || isGoogleLoading || isPhoneLoading || isBiometricLoading;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -149,6 +152,16 @@ export default function LoginPage() {
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  const handleBiometricSignIn = async () => {
+    setIsBiometricLoading(true);
+    toast({
+        title: 'Feature Not Implemented',
+        description: "Biometric sign-in (Passkeys) requires a more complex setup and isn't available yet.",
+    });
+    // In a real app, this would trigger the WebAuthn API flow.
+    setIsBiometricLoading(false);
   };
 
   const handleSendVerificationSms = async () => {
@@ -229,7 +242,7 @@ export default function LoginPage() {
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading || isPhoneLoading}
+              disabled={anyLoading}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -247,20 +260,36 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        <Button
-          variant="outline"
-          type="button"
-          disabled={isLoading || isGoogleLoading || isPhoneLoading}
-          onClick={handleGoogleSignIn}
-          className="w-full"
-        >
-          {isGoogleLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <GoogleIcon className="mr-2 h-4 w-4" />
-          )}
-          Google
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+           <Button
+            variant="outline"
+            type="button"
+            disabled={anyLoading}
+            onClick={handleGoogleSignIn}
+            className="w-full"
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="mr-2 h-4 w-4" />
+            )}
+            Google
+          </Button>
+           <Button
+            variant="outline"
+            type="button"
+            disabled={anyLoading}
+            onClick={handleBiometricSignIn}
+            className="w-full"
+          >
+            {isBiometricLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Fingerprint className="mr-2 h-4 w-4" />
+            )}
+            Passkey
+          </Button>
+        </div>
          <div className="relative my-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
@@ -282,12 +311,12 @@ export default function LoginPage() {
                   placeholder="+14155552671"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={isLoading || isGoogleLoading || isPhoneLoading}
+                  disabled={anyLoading}
                 />
                 <Button
                   variant="outline"
                   type="button"
-                  disabled={isLoading || isGoogleLoading || isPhoneLoading || !phoneNumber}
+                  disabled={anyLoading || !phoneNumber}
                   onClick={handleSendVerificationSms}
                   className="w-auto"
                 >

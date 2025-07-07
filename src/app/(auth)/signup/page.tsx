@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone, Check, X, CalendarIcon } from 'lucide-react';
+import { Loader2, Mail, Phone, Check, X, CalendarIcon, Fingerprint } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -90,6 +90,7 @@ const formSchema = z.object({
   state: z.string().min(1, { message: 'State is required.' }),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
   enableTwoFactor: z.boolean().default(false).optional(),
+  enableBiometrics: z.boolean().default(false).optional(),
 });
 
 // Mock function to simulate checking username availability
@@ -135,6 +136,7 @@ export default function SignupPage() {
       state: '',
       occupations: [],
       enableTwoFactor: false,
+      enableBiometrics: false,
     },
   });
 
@@ -559,6 +561,29 @@ export default function SignupPage() {
                     <FormLabel>Enable Two-Factor Authentication</FormLabel>
                     <FormDescription>
                       Secure your account with an extra layer of protection using SMS.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="enableBiometrics"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="flex items-center gap-2">
+                        <Fingerprint className="h-4 w-4" />
+                        Enable Passkey (Biometric) Sign-in
+                    </FormLabel>
+                    <FormDescription>
+                      Sign in faster on this device using your fingerprint or face recognition.
                     </FormDescription>
                   </div>
                 </FormItem>

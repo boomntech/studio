@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -66,6 +66,10 @@ export default function SettingsPage() {
     const [step, setStep] = useState(1); // 1: enter phone, 2: enter code
     const [phoneNumber, setPhoneNumber] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
+
+    // Passkey State
+    const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+    const [isBiometricLoading, setIsBiometricLoading] = useState(false);
 
     // Username state
     const [initialUsername, setInitialUsername] = useState('');
@@ -140,6 +144,8 @@ export default function SettingsPage() {
             const currentUsername = user.email?.split('@')[0] || 'boomnuser';
             setInitialUsername(currentUsername);
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
+             // In a real app, you'd check if a passkey is registered for the user
+            setIsBiometricEnabled(false); 
             profileForm.reset({ 
                 name: user.displayName || '',
                 username: currentUsername,
@@ -228,6 +234,20 @@ export default function SettingsPage() {
             toast({ title: 'Success! (Simulated)', description: 'Two-factor authentication has been disabled.' });
             setIsTwoFactorEnabled(false);
             setIsLoading(false);
+        }, 1000);
+    };
+
+    const handleToggleBiometrics = () => {
+        setIsBiometricLoading(true);
+        // This is where you would trigger the WebAuthn API flow for registering or removing a passkey.
+        setTimeout(() => {
+            const newState = !isBiometricEnabled;
+            setIsBiometricEnabled(newState);
+            toast({
+                title: `Success! (Simulated)`,
+                description: `Biometric sign-in (Passkey) has been ${newState ? 'enabled' : 'disabled'}.`
+            });
+            setIsBiometricLoading(false);
         }, 1000);
     };
 
@@ -485,6 +505,31 @@ export default function SettingsPage() {
                             </Dialog>
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><Fingerprint className="h-6 w-6" /><span>Biometric Sign-in (Passkey)</span></CardTitle>
+                    <CardDescription>Sign in quickly and securely using your device's fingerprint or face recognition.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="biometric-switch" className="font-medium">
+                                Enable Biometric Sign-in
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                {isBiometricEnabled ? "You can sign in using this device's biometrics." : "Your account is not set up for biometric sign-in."}
+                            </p>
+                        </div>
+                        <Switch
+                            id="biometric-switch"
+                            checked={isBiometricEnabled}
+                            onCheckedChange={handleToggleBiometrics}
+                            disabled={isBiometricLoading}
+                        />
+                    </div>
                 </CardContent>
             </Card>
 
