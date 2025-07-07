@@ -6,6 +6,7 @@ import AgoraRTC, {
   type ICameraVideoTrack,
   type IMicrophoneAudioTrack,
   type IAgoraRTCRemoteUser,
+  type ClientRole,
 } from 'agora-rtc-sdk-ng';
 import { useToast } from './use-toast';
 
@@ -15,9 +16,10 @@ interface UseAgoraConfig {
   appId: string;
   channelName: string;
   token: string | null;
+  role?: ClientRole;
 }
 
-export function useAgora({ appId, channelName, token }: UseAgoraConfig) {
+export function useAgora({ appId, channelName, token, role = 'host' }: UseAgoraConfig) {
   const { toast } = useToast();
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const localTracksRef = useRef<{
@@ -37,7 +39,7 @@ export function useAgora({ appId, channelName, token }: UseAgoraConfig) {
         return;
     }
 
-    clientRef.current = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+    clientRef.current = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
     const client = clientRef.current;
 
     const handleUserPublished = async (
@@ -67,19 +69,27 @@ export function useAgora({ appId, channelName, token }: UseAgoraConfig) {
 
     const joinChannel = async () => {
       try {
+        if (role === 'host') {
+          client.setClientRole('host');
+        } else {
+          client.setClientRole('audience');
+        }
+
         await client.join(appId, channelName, token, null);
         
-        const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-        localTracksRef.current = { audioTrack, videoTrack };
+        if (role === 'host') {
+          const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+          localTracksRef.current = { audioTrack, videoTrack };
+          await client.publish([audioTrack, videoTrack]);
+        }
         
-        await client.publish([audioTrack, videoTrack]);
         setIsJoined(true);
       } catch (error: any) {
         console.error('Failed to join Agora channel', error);
         toast({
             variant: 'destructive',
             title: 'Connection Failed',
-            description: error.message || 'Could not connect to the video call service.',
+            description: error.message || 'Could not connect to the video service.',
         });
       } finally {
         setIsLoading(false);
@@ -97,7 +107,7 @@ export function useAgora({ appId, channelName, token }: UseAgoraConfig) {
       client.off('user-joined', handleUserJoined);
       client.off('user-left', handleUserLeft);
     };
-  }, [appId, channelName, token, toast]);
+  }, [appId, channelName, token, role, toast]);
 
   const leave = async () => {
     localTracksRef.current.audioTrack?.close();

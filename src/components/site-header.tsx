@@ -7,6 +7,7 @@ const titles: { [key: string]: string } = {
   '/': 'Home',
   '/explore': 'Discover',
   '/network': 'Network',
+  '/livestream': 'Live',
   '/events': 'Events',
   '/messages': 'Messages',
   '/assistant': 'AI Assistant',
@@ -17,6 +18,8 @@ const titles: { [key: string]: string } = {
 
 function getTitle(pathname: string) {
   if (pathname.startsWith('/events/')) return 'Event Details';
+  if (pathname.startsWith('/livestream/')) return 'Live Stream';
+  if (pathname.startsWith('/network/call')) return 'Video Call';
   return titles[pathname] || 'Boomn';
 }
 

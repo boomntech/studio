@@ -16,6 +16,7 @@ import {
   Wallet,
   User,
   Shuffle,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ const links = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/explore', label: 'Discover', icon: Compass },
   { href: '/network', label: 'Network', icon: Shuffle },
+  { href: '/livestream', label: 'Live', icon: Radio },
   { href: '/events', label: 'Events', icon: Calendar },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/assistant', label: 'Assistant', icon: Sparkles },
@@ -36,7 +38,7 @@ export function MainNav() {
     <SidebarMenu>
       {links.map((link) => {
         const Icon = link.icon;
-        const isActive = pathname === link.href;
+        const isActive = pathname.startsWith(link.href) && (link.href !== '/' || pathname === '/');
         return (
           <SidebarMenuItem key={link.href}>
             <SidebarMenuButton
