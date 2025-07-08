@@ -52,6 +52,7 @@ import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { LocationAutocomplete } from '@/components/location-autocomplete';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -468,12 +469,57 @@ export default function SignupPage() {
 
             {step === 3 && (
                 <div className="space-y-4">
-                    <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your country" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="united-states">United States</SelectItem> <SelectItem value="canada">Canada</SelectItem> <SelectItem value="mexico">Mexico</SelectItem> <SelectItem value="united-kingdom">United Kingdom</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="e.g. San Francisco" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-                        <FormField control={form.control} name="state" render={({ field }) => ( <FormItem> <FormLabel>State / Province</FormLabel> <FormControl> <Input placeholder="e.g. California" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+                    <FormItem>
+                        <FormLabel>Search for your Location</FormLabel>
+                        <FormControl>
+                            <LocationAutocomplete />
+                        </FormControl>
+                        <FormDescription>
+                            Select your city from the list to autofill the fields below.
+                        </FormDescription>
+                    </FormItem>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>City</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g. San Francisco" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="state"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>State / Province</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g. California" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
-                    <FormDescription>We'll add autofill here soon using the Google Maps API!</FormDescription>
+                    <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Country</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. United States" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
             )}
 
