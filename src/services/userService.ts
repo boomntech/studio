@@ -24,6 +24,7 @@ export interface UserProfile {
   username: string;
   email: string;
   avatarUrl?: string;
+  bio?: string;
   dob?: Date;
   gender?: string;
   race?: string;

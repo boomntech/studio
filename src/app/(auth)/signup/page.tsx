@@ -18,7 +18,8 @@ import {
   signInWithPhoneNumber,
   type ConfirmationResult,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, storage } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken } from '@/services/userService';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +54,8 @@ import { InterestInput } from '@/components/interest-input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { LocationAutocomplete } from '@/components/location-autocomplete';
+import { Textarea } from '@/components/ui/textarea';
+import { AvatarUpload } from '@/components/avatar-upload';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -112,6 +115,9 @@ const formSchema = z.object({
   goals: z.array(z.string()).min(1, {message: 'Please select at least one goal.'}).max(3, { message: "You can select up to 3 goals." }).optional(),
   contentPreferences: z.array(z.string()).min(1, {message: 'Please select at least one content type.'}).optional(),
 
+  // Step 6
+  bio: z.string().max(160, { message: "Bio cannot exceed 160 characters." }).optional(),
+
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
@@ -137,13 +143,14 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
-const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Interests & Goals"];
+const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Interests & Goals", "Set up your profile"];
 const stepDescriptions = [
     "Get started with the basics.", 
     "This helps us personalize your experience.", 
     "This helps connect you with people and events nearby.",
     "Tell us about your professional background.",
-    "Fuel algorithmic discovery and networking."
+    "Fuel algorithmic discovery and networking.",
+    "This is optional. You can always do this later."
 ];
 const goals = [
   { id: 'grow_audience', label: 'Grow my audience' },
@@ -168,6 +175,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -207,6 +215,7 @@ export default function SignupPage() {
       isRunningBusiness: false,
       businessName: '',
       businessWebsite: '',
+      bio: '',
     },
   });
   
@@ -279,11 +288,14 @@ export default function SignupPage() {
     if (step === 5) {
       fieldsToValidate = ['interests', 'goals', 'contentPreferences'];
     }
+     if (step === 6) {
+      fieldsToValidate = ['bio'];
+    }
 
     const isValid = await form.trigger(fieldsToValidate);
     if (!isValid) return;
 
-    if (step < 5) {
+    if (step < 6) {
       setStep(s => s + 1);
     } else {
       await form.handleSubmit(onSubmit)();
@@ -308,12 +320,21 @@ export default function SignupPage() {
         values.email,
         values.password
       );
-      await updateProfile(userCredential.user, { displayName: values.name });
+
+      let finalAvatarUrl = '';
+      if (avatarFile && storage) {
+        const avatarStorageRef = storageRef(storage, `avatars/${userCredential.user.uid}`);
+        await uploadBytes(avatarStorageRef, avatarFile);
+        finalAvatarUrl = await getDownloadURL(avatarStorageRef);
+      }
+      
+      await updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
       
       const { password, confirmPassword, enableTwoFactor, enableBiometrics, ...profileData } = values;
       await saveUserProfile(userCredential.user.uid, {
         ...profileData,
         email: userCredential.user.email!,
+        avatarUrl: finalAvatarUrl || undefined,
       });
       
       router.push('/');
@@ -350,7 +371,7 @@ export default function SignupPage() {
         <div className="flex flex-col items-center text-center space-y-4">
           <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
           <div className="w-full space-y-2">
-            <Progress value={(step / 5) * 100} className="w-full" />
+            <Progress value={(step / 6) * 100} className="w-full" />
             <CardTitle>{stepTitles[step - 1]}</CardTitle>
             <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
           </div>
@@ -658,18 +679,68 @@ export default function SignupPage() {
               </div>
             )}
 
+            {step === 6 && (
+                <div className="space-y-6">
+                    <AvatarUpload onFileChange={setAvatarFile} fallbackText={form.getValues('name')?.charAt(0) || 'U'} />
+                    <FormField
+                        control={form.control}
+                        name="bio"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Your Bio</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                placeholder="Tell us a little about yourself..."
+                                className="resize-none"
+                                {...field}
+                                />
+                            </FormControl>
+                             <FormDescription>
+                                A brief description of who you are. This will appear on your profile.
+                            </FormDescription>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            )}
+
+
             <div className="flex gap-2 pt-4">
               {step > 1 && <Button variant="outline" type="button" className="w-full" onClick={() => setStep(s => s - 1)}>Back</Button>}
-              <Button 
-                type="button" 
-                className="w-full"
-                onClick={handleNextStep}
-                disabled={isLoading || usernameStatus === 'checking'}
-              >
-                {isLoading && step === 5 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {step === 5 ? 'Finalize Profile' : 'Continue'}
-              </Button>
+              
+              {step === 6 ? (
+                <Button 
+                    type="button" 
+                    className="w-full"
+                    onClick={form.handleSubmit(onSubmit)}
+                    disabled={isLoading || usernameStatus === 'checking'}
+                >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Finish Profile
+                </Button>
+              ) : (
+                <Button 
+                    type="button" 
+                    className="w-full"
+                    onClick={handleNextStep}
+                    disabled={isLoading || usernameStatus === 'checking'}
+                >
+                    Continue
+                </Button>
+              )}
             </div>
+             {step === 6 && (
+                <Button 
+                    variant="link" 
+                    type="button" 
+                    className="w-full"
+                    onClick={form.handleSubmit(onSubmit)}
+                    disabled={isLoading || usernameStatus === 'checking'}
+                >
+                    Skip for now
+                </Button>
+            )}
           </form>
         </Form>
         
