@@ -314,6 +314,14 @@ export default function SignupPage() {
       setIsLoading(false);
       return;
     }
+
+    if (values.enableBiometrics) {
+      toast({
+          title: 'Passkey Registration Not Available',
+          description: "You've successfully signed up, but passkey registration is not yet implemented.",
+      });
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,

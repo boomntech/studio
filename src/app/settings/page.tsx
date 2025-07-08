@@ -314,16 +314,12 @@ export default function SettingsPage() {
 
     const handleToggleBiometrics = () => {
         setIsBiometricLoading(true);
-        // This is where you would trigger the WebAuthn API flow for registering or removing a passkey.
-        setTimeout(() => {
-            const newState = !isBiometricEnabled;
-            setIsBiometricEnabled(newState);
-            toast({
-                title: `Success! (Simulated)`,
-                description: `Biometric sign-in (Passkey) has been ${newState ? 'enabled' : 'disabled'}.`
-            });
-            setIsBiometricLoading(false);
-        }, 1000);
+        toast({
+            title: 'Feature Not Implemented',
+            description: "Full passkey management requires a backend implementation and isn't available yet.",
+        });
+        // In a real app, this would trigger the WebAuthn API flow.
+        setIsBiometricLoading(false);
     };
 
     if (!isMounted) {
