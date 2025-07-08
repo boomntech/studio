@@ -7,15 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  type ConfirmationResult,
-  PasskeyAuthProvider,
-} from 'firebase/auth';
+import * as fbAuth from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -79,7 +71,7 @@ export default function LoginPage() {
   const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<fbAuth.ConfirmationResult | null>(null);
 
   const anyLoading = isLoading || isGoogleLoading || isPhoneLoading || isBiometricLoading;
 
@@ -94,7 +86,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!auth) return;
     if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      (window as any).recaptchaVerifier = new fbAuth.RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': () => { /* reCAPTCHA solved */ }
       });
@@ -117,7 +109,7 @@ export default function LoginPage() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      await fbAuth.signInWithEmailAndPassword(auth, values.email, values.password);
       router.push('/');
     } catch (error: any) {
       toast({
@@ -140,9 +132,9 @@ export default function LoginPage() {
       return;
     }
     setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
+    const provider = new fbAuth.GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await fbAuth.signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
       let description = error.message;
@@ -175,8 +167,8 @@ export default function LoginPage() {
     }
     setIsBiometricLoading(true);
     try {
-      const provider = new PasskeyAuthProvider(relyingPartyId);
-      await signInWithPopup(auth, provider);
+      const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
+      await fbAuth.signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
       toast({
@@ -201,7 +193,7 @@ export default function LoginPage() {
     setIsPhoneLoading(true);
     try {
         const appVerifier = (window as any).recaptchaVerifier;
-        const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        const result = await fbAuth.signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         setConfirmationResult(result);
         setPhoneStep('enterCode');
         toast({ title: 'Verification Code Sent', description: `A code has been sent to ${phoneNumber}.` });

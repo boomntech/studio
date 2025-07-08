@@ -8,18 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from "date-fns"
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider,
-  sendSignInLinkToEmail,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  type ConfirmationResult,
-  linkWithPopup,
-  PasskeyAuthProvider,
-} from 'firebase/auth';
+import * as fbAuth from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
@@ -187,7 +176,7 @@ export default function SignupPage() {
   const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<fbAuth.ConfirmationResult | null>(null);
 
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
@@ -261,7 +250,7 @@ export default function SignupPage() {
   useEffect(() => {
     if (!auth) return;
     if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      (window as any).recaptchaVerifier = new fbAuth.RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': () => { /* reCAPTCHA solved */ }
       });
@@ -318,7 +307,7 @@ export default function SignupPage() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
+      const userCredential = await fbAuth.createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
@@ -331,7 +320,7 @@ export default function SignupPage() {
         finalAvatarUrl = await getDownloadURL(avatarStorageRef);
       }
       
-      await updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
+      await fbAuth.updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
       
       const { password, confirmPassword, enableTwoFactor, enableBiometrics, ...profileData } = values;
       await saveUserProfile(userCredential.user.uid, {
@@ -349,8 +338,8 @@ export default function SignupPage() {
           const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
           if (!relyingPartyId) throw new Error("Firebase Auth domain is not configured for Passkey registration.");
           
-          const provider = new PasskeyAuthProvider(relyingPartyId);
-          await linkWithPopup(userCredential.user, provider);
+          const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
+          await fbAuth.linkWithPopup(userCredential.user, provider);
           
           toast({
             title: 'Passkey Registered!',
@@ -384,10 +373,10 @@ export default function SignupPage() {
       return;
     }
     setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
+    const provider = new fbAuth.GoogleAuthProvider();
 
     try {
-      const userCredential = await signInWithPopup(auth, provider);
+      const userCredential = await fbAuth.signInWithPopup(auth, provider);
       const user = userCredential.user;
 
       const existingProfile = await getUserProfile(user.uid);

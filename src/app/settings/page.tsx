@@ -8,13 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from "date-fns"
-import { 
-    updateProfile,
-    PasskeyAuthProvider,
-    linkWithPopup,
-    multiFactor,
-    type MultiFactorInfo,
-} from 'firebase/auth';
+import * as fbAuth from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,7 +115,7 @@ export default function SettingsPage() {
     const [verificationCode, setVerificationCode] = useState('');
 
     // Passkey State
-    const [passkeys, setPasskeys] = useState<MultiFactorInfo[]>([]);
+    const [passkeys, setPasskeys] = useState<fbAuth.MultiFactorInfo[]>([]);
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
     const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null);
 
@@ -281,7 +275,7 @@ export default function SettingsPage() {
 
             // Update display name and photoURL in Firebase Auth
             if (values.name !== user.displayName || (finalAvatarUrl && finalAvatarUrl !== user.photoURL)) {
-                await updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
+                await fbAuth.updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
             }
     
             // Save all profile data to Firestore
@@ -347,10 +341,10 @@ export default function SettingsPage() {
     
         setIsPasskeyLoading(true);
         try {
-            const provider = new PasskeyAuthProvider(relyingPartyId);
-            await linkWithPopup(user, provider);
+            const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
+            await fbAuth.linkWithPopup(user, provider);
             // Refresh passkeys from user object
-            const updatedFactors = multiFactor(user).enrolledFactors;
+            const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
             setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
             toast({ title: 'Passkey Registered Successfully!' });
         } catch (error: any) {
@@ -360,13 +354,13 @@ export default function SettingsPage() {
         }
     };
     
-    const handleRemovePasskey = async (factor: MultiFactorInfo) => {
+    const handleRemovePasskey = async (factor: fbAuth.MultiFactorInfo) => {
         if (!user) return;
         setDeletingPasskeyId(factor.uid);
         try {
-            await multiFactor(user).unenroll(factor);
+            await fbAuth.multiFactor(user).unenroll(factor);
             // Refresh passkeys from user object
-            const updatedFactors = multiFactor(user).enrolledFactors;
+            const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
             setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
             toast({ title: 'Passkey Removed' });
         } catch (error: any) {
