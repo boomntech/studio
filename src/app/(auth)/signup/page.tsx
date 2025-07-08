@@ -457,6 +457,7 @@ export default function SignupPage() {
           <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
           <div className="w-full space-y-2">
             <Progress value={(step / 6) * 100} className="w-full" />
+            <p className="text-sm font-medium text-muted-foreground">Step {step} of 6</p>
             <CardTitle>{stepTitles[step - 1]}</CardTitle>
             <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
           </div>

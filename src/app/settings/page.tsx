@@ -15,6 +15,8 @@ import {
     multiFactor,
     type MultiFactorInfo,
 } from 'firebase/auth';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, storage } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -32,12 +34,16 @@ import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
 import { getUserProfile, saveUserProfile, isUsernameTaken } from '@/services/userService';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AvatarUpload } from '@/components/avatar-upload';
+import { Textarea } from '@/components/ui/textarea';
+
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   username: z.string()
     .min(3, { message: "Username must be at least 3 characters."})
     .regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores."}),
+  bio: z.string().max(160, { message: "Bio cannot exceed 160 characters." }).optional(),
   dob: z.date().optional(),
   gender: z.string().optional(),
   race: z.string().optional(),
@@ -103,6 +109,8 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState('light');
     const [isMounted, setIsMounted] = useState(false);
     const [isProfileLoading, setIsProfileLoading] = useState(false);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | undefined>(undefined);
 
     // 2FA State
     const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
@@ -128,6 +136,7 @@ export default function SettingsPage() {
         defaultValues: {
             name: '',
             username: '',
+            bio: '',
             dob: undefined,
             gender: '',
             race: '',
@@ -206,11 +215,13 @@ export default function SettingsPage() {
                 // Set initial username for checking logic
                 const currentUsername = profile?.username || user.email?.split('@')[0] || 'boomnuser';
                 setInitialUsername(currentUsername);
+                setInitialAvatarUrl(profile?.avatarUrl || user.photoURL || undefined);
     
                 // Populate form with Firestore data, falling back to Auth data
                 profileForm.reset({
                     name: profile?.name || user.displayName || '',
                     username: currentUsername,
+                    bio: profile?.bio || '',
                     dob: profile?.dob, // getUserProfile converts timestamp to Date
                     gender: profile?.gender || '',
                     race: profile?.race || '',
@@ -261,14 +272,22 @@ export default function SettingsPage() {
 
         setIsProfileLoading(true);
         try {
-            // Update display name in Firebase Auth
-            if (values.name !== user.displayName) {
-                await updateProfile(user, { displayName: values.name });
+            let finalAvatarUrl = initialAvatarUrl;
+            if (avatarFile && storage) {
+              const avatarStorageRef = storageRef(storage, `avatars/${user.uid}`);
+              await uploadBytes(avatarStorageRef, avatarFile);
+              finalAvatarUrl = await getDownloadURL(avatarStorageRef);
+            }
+
+            // Update display name and photoURL in Firebase Auth
+            if (values.name !== user.displayName || (finalAvatarUrl && finalAvatarUrl !== user.photoURL)) {
+                await updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
             }
     
             // Save all profile data to Firestore
             await saveUserProfile(user.uid, {
                 email: user.email!,
+                avatarUrl: finalAvatarUrl,
                 ...values,
             });
             
@@ -370,7 +389,8 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...profileForm}>
-                        <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                        <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-6">
+                             <AvatarUpload onFileChange={setAvatarFile} initialImageUrl={initialAvatarUrl} fallbackText={profileForm.getValues('name')?.charAt(0) || 'U'} />
                             <FormField
                                 control={profileForm.control}
                                 name="name"
@@ -433,6 +453,23 @@ export default function SettingsPage() {
                                   <FormMessage />
                                 </FormItem>
                               )}
+                            />
+                            <FormField
+                                control={profileForm.control}
+                                name="bio"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Bio</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                        placeholder="Tell us a little about yourself..."
+                                        className="resize-none"
+                                        {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
                             />
                             <FormField
                                 control={profileForm.control}
