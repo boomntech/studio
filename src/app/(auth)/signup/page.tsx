@@ -17,6 +17,8 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   type ConfirmationResult,
+  linkWithPopup,
+  PasskeyAuthProvider,
 } from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
@@ -315,13 +317,6 @@ export default function SignupPage() {
       return;
     }
 
-    if (values.enableBiometrics) {
-      toast({
-          title: 'Passkey Registration Not Available',
-          description: "You've successfully signed up, but passkey registration is not yet implemented.",
-      });
-    }
-
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -345,6 +340,32 @@ export default function SignupPage() {
         avatarUrl: finalAvatarUrl || undefined,
       });
       
+      if (values.enableBiometrics) {
+        toast({
+          title: 'Registering Passkey',
+          description: 'Please follow the prompts from your browser or device.',
+        });
+        try {
+          const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+          if (!relyingPartyId) throw new Error("Firebase Auth domain is not configured for Passkey registration.");
+          
+          const provider = new PasskeyAuthProvider(relyingPartyId);
+          await linkWithPopup(userCredential.user, provider);
+          
+          toast({
+            title: 'Passkey Registered!',
+            description: 'You can now sign in using your passkey.',
+          });
+
+        } catch (passkeyError: any) {
+          toast({
+            variant: 'destructive',
+            title: 'Passkey Registration Failed',
+            description: 'You can register a passkey later in your account settings.',
+          });
+        }
+      }
+
       router.push('/');
     } catch (error: any) {
       toast({

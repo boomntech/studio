@@ -8,7 +8,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from "date-fns"
-import { updateProfile } from 'firebase/auth';
+import { 
+    updateProfile,
+    PasskeyAuthProvider,
+    linkWithPopup,
+    multiFactor,
+    type MultiFactorInfo,
+} from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -107,8 +113,9 @@ export default function SettingsPage() {
     const [verificationCode, setVerificationCode] = useState('');
 
     // Passkey State
-    const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
-    const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+    const [passkeys, setPasskeys] = useState<MultiFactorInfo[]>([]);
+    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+    const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null);
 
     // Username state
     const [initialUsername, setInitialUsername] = useState('');
@@ -223,9 +230,8 @@ export default function SettingsPage() {
             };
     
             fetchProfile();
-            setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.length > 0);
-             // In a real app, you'd check if a passkey is registered for the user
-            setIsBiometricEnabled(false); 
+            setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.some(f => f.factorId === 'phone'));
+            setPasskeys(user.multiFactor.enrolledFactors.filter(f => f.factorId === 'passkey'));
         }
     }, [user, profileForm]);
     
@@ -312,17 +318,46 @@ export default function SettingsPage() {
         }, 1000);
     };
 
-    const handleToggleBiometrics = () => {
-        setIsBiometricLoading(true);
-        toast({
-            title: 'Feature Not Implemented',
-            description: "Full passkey management requires a backend implementation and isn't available yet.",
-        });
-        // In a real app, this would trigger the WebAuthn API flow.
-        setIsBiometricLoading(false);
+    const handleRegisterNewPasskey = async () => {
+        if (!user) return;
+        const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+        if (!relyingPartyId) {
+            toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase Auth Domain not set for Passkeys.' });
+            return;
+        }
+    
+        setIsPasskeyLoading(true);
+        try {
+            const provider = new PasskeyAuthProvider(relyingPartyId);
+            await linkWithPopup(user, provider);
+            // Refresh passkeys from user object
+            const updatedFactors = multiFactor(user).enrolledFactors;
+            setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
+            toast({ title: 'Passkey Registered Successfully!' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
+        } finally {
+            setIsPasskeyLoading(false);
+        }
+    };
+    
+    const handleRemovePasskey = async (factor: MultiFactorInfo) => {
+        if (!user) return;
+        setDeletingPasskeyId(factor.uid);
+        try {
+            await multiFactor(user).unenroll(factor);
+            // Refresh passkeys from user object
+            const updatedFactors = multiFactor(user).enrolledFactors;
+            setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
+            toast({ title: 'Passkey Removed' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Removal Failed', description: error.message });
+        } finally {
+            setDeletingPasskeyId(null);
+        }
     };
 
-    if (!isMounted) {
+    if (!isMounted || !user) {
         return null;
     }
 
@@ -806,26 +841,42 @@ export default function SettingsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-3"><Fingerprint className="h-6 w-6" /><span>Biometric Sign-in (Passkey)</span></CardTitle>
-                    <CardDescription>Sign in quickly and securely using your device's fingerprint or face recognition.</CardDescription>
+                    <CardTitle className="flex items-center gap-3"><Fingerprint className="h-6 w-6" /><span>Biometric Sign-in (Passkeys)</span></CardTitle>
+                    <CardDescription>Manage the passkeys associated with your account for fast and secure sign-in.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="biometric-switch" className="font-medium">
-                                Enable Biometric Sign-in
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                {isBiometricEnabled ? "You can sign in using this device's biometrics." : "Your account is not set up for biometric sign-in."}
-                            </p>
-                        </div>
-                        <Switch
-                            id="biometric-switch"
-                            checked={isBiometricEnabled}
-                            onCheckedChange={handleToggleBiometrics}
-                            disabled={isBiometricLoading}
-                        />
-                    </div>
+                <CardContent className="space-y-4">
+                    {passkeys.length > 0 ? (
+                        <ul className="space-y-2">
+                            {passkeys.map((pk) => (
+                                <li key={pk.uid} className="flex items-center justify-between rounded-lg border p-4">
+                                    <div>
+                                        <p className="font-medium">{pk.displayName || `Passkey`}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Enrolled: {format(new Date(pk.enrollmentTime), 'PPP')}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => handleRemovePasskey(pk)}
+                                        disabled={deletingPasskeyId === pk.uid}
+                                    >
+                                        {deletingPasskeyId === pk.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remove'}
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">You have no passkeys registered.</p>
+                    )}
+                    <Button onClick={handleRegisterNewPasskey} disabled={isPasskeyLoading}>
+                        {isPasskeyLoading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Fingerprint className="mr-2 h-4 w-4" />
+                        )}
+                        Register a new passkey
+                    </Button>
                 </CardContent>
             </Card>
 

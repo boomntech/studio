@@ -14,6 +14,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   type ConfirmationResult,
+  PasskeyAuthProvider,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -155,13 +156,33 @@ export default function LoginPage() {
   };
 
   const handleBiometricSignIn = async () => {
+    if (!auth) {
+      toast({ variant: 'destructive', title: 'Firebase not configured.' });
+      return;
+    }
+    const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+    if (!relyingPartyId) {
+      toast({
+        variant: 'destructive',
+        title: 'Configuration Error',
+        description: 'The Firebase Auth domain is not configured for Passkey sign-in.',
+      });
+      return;
+    }
     setIsBiometricLoading(true);
-    toast({
-        title: 'Feature Not Implemented',
-        description: "Biometric sign-in (Passkeys) requires a more complex setup and isn't available yet.",
-    });
-    // In a real app, this would trigger the WebAuthn API flow.
-    setIsBiometricLoading(false);
+    try {
+      const provider = new PasskeyAuthProvider(relyingPartyId);
+      await signInWithPopup(auth, provider);
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Passkey Sign-In Failed',
+        description: error.code === 'auth/cancelled-popup-request' ? 'Sign-in cancelled.' : error.message,
+      });
+    } finally {
+      setIsBiometricLoading(false);
+    }
   };
 
   const handleSendVerificationSms = async () => {
