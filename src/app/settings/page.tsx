@@ -18,13 +18,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud, Briefcase } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud, Briefcase, Sparkles, Goal, FileText } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
 import { getUserProfile, saveUserProfile, isUsernameTaken } from '@/services/userService';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -44,6 +45,8 @@ const profileFormSchema = z.object({
   isRunningBusiness: z.boolean().default(false).optional(),
   businessName: z.string().optional(),
   businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  goals: z.array(z.string()).max(3, { message: "You can select up to 3 goals." }).optional(),
+  contentPreferences: z.array(z.string()).optional(),
 }).refine(data => {
     if (data.isRunningBusiness && (!data.businessName || data.businessName.length === 0)) {
         return false;
@@ -69,6 +72,24 @@ const checkUsernameAvailability = async (username: string, currentUsername?: str
     }
     return { available: true, suggestions: [] };
 };
+
+const goals = [
+  { id: 'grow_audience', label: 'Grow my audience' },
+  { id: 'find_clients', label: 'Find new clients' },
+  { id: 'learn_skills', label: 'Learn new skills' },
+  { id: 'network_peers', label: 'Network with peers' },
+  { id: 'hire_talent', label: 'Hire talent' },
+  { id: 'discover_content', label: 'Discover content' },
+] as const;
+
+const contentPreferences = [
+    { id: 'tips_tutorials', label: 'Tips & Tutorials' },
+    { id: 'success_stories', label: 'Success Stories' },
+    { id: 'templates_tools', label: 'Templates & Tools' },
+    { id: 'news_updates', label: 'News & Updates' },
+    { id: 'case_studies', label: 'Case Studies' },
+    { id: 'live_discussions', label: 'Live Discussions' },
+] as const;
 
 export default function SettingsPage() {
     const { user } = useAuth();
@@ -113,6 +134,8 @@ export default function SettingsPage() {
             isRunningBusiness: false,
             businessName: '',
             businessWebsite: '',
+            goals: [],
+            contentPreferences: [],
         },
     });
     
@@ -194,6 +217,8 @@ export default function SettingsPage() {
                     isRunningBusiness: profile?.isRunningBusiness || false,
                     businessName: profile?.businessName || '',
                     businessWebsite: profile?.businessWebsite || '',
+                    goals: profile?.goals || [],
+                    contentPreferences: profile?.contentPreferences || [],
                 });
             };
     
@@ -578,22 +603,6 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )}
                             />
-                             <FormField
-                                control={profileForm.control}
-                                name="interests"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Interests</FormLabel>
-                                    <FormControl>
-                                        <InterestInput value={field.value ?? []} onChange={field.onChange} />
-                                    </FormControl>
-                                    <FormDescription>
-                                        Select up to 5 interests to personalize your content feed.
-                                    </FormDescription>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                              <FormField control={profileForm.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
                              <FormField control={profileForm.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
                              {isRunningBusiness && (
@@ -605,6 +614,132 @@ export default function SettingsPage() {
                             <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
                                 {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><Sparkles className="h-6 w-6" /><span>Content & Feed Preferences</span></CardTitle>
+                    <CardDescription>Tell us what you're interested in to personalize your experience.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-6">
+                            <FormField
+                                control={profileForm.control}
+                                name="interests"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Interests</FormLabel>
+                                        <FormControl>
+                                            <InterestInput value={field.value ?? []} onChange={field.onChange} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Select up to 5 interests to personalize your content feed.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={profileForm.control}
+                                name="goals"
+                                render={() => (
+                                    <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">What are your goals?</FormLabel>
+                                        <FormDescription>Select up to 3 that are most important to you.</FormDescription>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                                        {goals.map((item) => (
+                                        <FormField
+                                            key={item.id}
+                                            control={profileForm.control}
+                                            name="goals"
+                                            render={({ field }) => {
+                                            return (
+                                                <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                        const currentValue = field.value ?? [];
+                                                        if (checked) {
+                                                            if (currentValue.length < 3) {
+                                                                field.onChange([...currentValue, item.id]);
+                                                            } else {
+                                                                toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
+                                                            }
+                                                        } else {
+                                                            field.onChange(currentValue.filter((value) => value !== item.id));
+                                                        }
+                                                    }}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                                </FormItem>
+                                            );
+                                            }}
+                                        />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                             <FormField
+                                control={profileForm.control}
+                                name="contentPreferences"
+                                render={() => (
+                                    <FormItem>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">What kind of content are you interested in?</FormLabel>
+                                        <FormDescription>This helps us tailor your feed.</FormDescription>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                                        {contentPreferences.map((item) => (
+                                        <FormField
+                                            key={item.id}
+                                            control={profileForm.control}
+                                            name="contentPreferences"
+                                            render={({ field }) => {
+                                            return (
+                                                <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                    checked={field.value?.includes(item.id)}
+                                                    onCheckedChange={(checked) => {
+                                                        const currentValue = field.value ?? [];
+                                                        return checked
+                                                        ? field.onChange([...currentValue, item.id])
+                                                        : field.onChange(
+                                                            currentValue.filter(
+                                                                (value) => value !== item.id
+                                                            )
+                                                            );
+                                                    }}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                                </FormItem>
+                                            );
+                                            }}
+                                        />
+                                        ))}
+                                    </div>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                            <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
+                                {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Preferences
                             </Button>
                         </form>
                     </Form>

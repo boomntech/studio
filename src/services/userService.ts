@@ -37,6 +37,8 @@ export interface UserProfile {
   isRunningBusiness?: boolean;
   businessName?: string;
   businessWebsite?: string;
+  goals?: string[];
+  contentPreferences?: string[];
   savedPosts?: string[]; // Array of post IDs
   createdAt?: any;
   updatedAt?: any;

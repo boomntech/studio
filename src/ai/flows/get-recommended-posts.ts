@@ -28,6 +28,8 @@ const UserProfileSchema = z.object({
   gender: z.string().optional(),
   race: z.string().optional(),
   sexualOrientation: z.string().optional(),
+  goals: z.array(z.string()).optional().describe("A list of the user's personal or professional goals."),
+  contentPreferences: z.array(z.string()).optional().describe("The types of content the user prefers to see."),
 });
 
 const PostAuthorSchema = z.object({
@@ -96,11 +98,13 @@ const prompt = ai.definePrompt({
   output: { schema: GetRecommendedPostsOutputSchema },
   prompt: `You are an advanced social media recommendation engine. Your task is to re-order a list of posts to create a personalized 'For You' feed for a specific user.
 
-Analyze the user's profile provided in the input: their interests, occupation, industry, location, and other demographic data.
+Analyze the user's profile provided in the input: their interests, occupation, industry, location, goals, content preferences, and other demographic data.
 Then, for the given list of posts, determine a relevance score for each one. The most relevant posts should come first.
 
 Factors to consider for relevance:
-- Direct match with user's interests (from 'tags').
+- Direct match with user's interests (from post 'tags').
+- Alignment with user's stated 'goals' (e.g., if goal is 'find clients', business-related posts are more relevant).
+- Match with user's 'contentPreferences' (e.g., if user likes 'tutorials', prioritize how-to content).
 - Posts that are trending.
 - Content related to the user's occupation and industry.
 - If the user is running a business, posts from other businesses or about entrepreneurship may be more relevant.

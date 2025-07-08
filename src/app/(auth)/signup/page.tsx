@@ -102,11 +102,16 @@ const formSchema = z.object({
 
   // Step 4
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
-  interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
   industry: z.string().optional(),
   isRunningBusiness: z.boolean().default(false).optional(),
   businessName: z.string().optional(),
   businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+
+  // Step 5
+  interests: z.array(z.string()).min(1, { message: "Please select at least one interest." }).max(5, { message: "You can select up to 5 interests." }),
+  goals: z.array(z.string()).min(1, {message: 'Please select at least one goal.'}).max(3, { message: "You can select up to 3 goals." }).optional(),
+  contentPreferences: z.array(z.string()).min(1, {message: 'Please select at least one content type.'}).optional(),
+
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
@@ -132,13 +137,32 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
-const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile"];
+const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Interests & Goals"];
 const stepDescriptions = [
     "Get started with the basics.", 
     "This helps us personalize your experience.", 
-    "This information helps in connecting you with people and events nearby.",
-    "Tell us about your professional background and personal interests."
+    "This helps connect you with people and events nearby.",
+    "Tell us about your professional background.",
+    "Fuel algorithmic discovery and networking."
 ];
+const goals = [
+  { id: 'grow_audience', label: 'Grow my audience' },
+  { id: 'find_clients', label: 'Find new clients' },
+  { id: 'learn_skills', label: 'Learn new skills' },
+  { id: 'network_peers', label: 'Network with peers' },
+  { id: 'hire_talent', label: 'Hire talent' },
+  { id: 'discover_content', label: 'Discover content' },
+] as const;
+
+const contentPreferences = [
+    { id: 'tips_tutorials', label: 'Tips & Tutorials' },
+    { id: 'success_stories', label: 'Success Stories' },
+    { id: 'templates_tools', label: 'Templates & Tools' },
+    { id: 'news_updates', label: 'News & Updates' },
+    { id: 'case_studies', label: 'Case Studies' },
+    { id: 'live_discussions', label: 'Live Discussions' },
+] as const;
+
 
 export default function SignupPage() {
   const router = useRouter();
@@ -175,6 +199,8 @@ export default function SignupPage() {
       state: '',
       occupations: [],
       interests: [],
+      goals: [],
+      contentPreferences: [],
       enableTwoFactor: false,
       enableBiometrics: false,
       industry: '',
@@ -248,13 +274,16 @@ export default function SignupPage() {
       fieldsToValidate = ['country', 'city', 'state'];
     }
     if (step === 4) {
-      fieldsToValidate = ['occupations', 'interests', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
+      fieldsToValidate = ['occupations', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
+    }
+    if (step === 5) {
+      fieldsToValidate = ['interests', 'goals', 'contentPreferences'];
     }
 
     const isValid = await form.trigger(fieldsToValidate);
     if (!isValid) return;
 
-    if (step < 4) {
+    if (step < 5) {
       setStep(s => s + 1);
     } else {
       await form.handleSubmit(onSubmit)();
@@ -321,7 +350,7 @@ export default function SignupPage() {
         <div className="flex flex-col items-center text-center space-y-4">
           <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
           <div className="w-full space-y-2">
-            <Progress value={(step / 4) * 100} className="w-full" />
+            <Progress value={(step / 5) * 100} className="w-full" />
             <CardTitle>{stepTitles[step - 1]}</CardTitle>
             <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
           </div>
@@ -526,7 +555,6 @@ export default function SignupPage() {
             {step === 4 && (
               <div className="space-y-4">
                 <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
                 {isRunningBusiness && (
@@ -538,6 +566,98 @@ export default function SignupPage() {
               </div>
             )}
 
+            {step === 5 && (
+              <div className="space-y-4">
+                 <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+                  <FormField
+                    control={form.control}
+                    name="goals"
+                    render={() => (
+                        <FormItem>
+                        <FormLabel>What are your goals?</FormLabel>
+                        <FormDescription>Select up to 3 that are most important to you.</FormDescription>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                            {goals.map((item) => (
+                            <FormField
+                                key={item.id}
+                                control={form.control}
+                                name="goals"
+                                render={({ field }) => {
+                                return (
+                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            const currentValue = field.value ?? [];
+                                            if (checked) {
+                                                if (currentValue.length < 3) {
+                                                    field.onChange([...currentValue, item.id]);
+                                                } else {
+                                                    toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
+                                                }
+                                            } else {
+                                                field.onChange(currentValue.filter((value) => value !== item.id));
+                                            }
+                                        }}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                    </FormItem>
+                                );
+                                }}
+                            />
+                            ))}
+                        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+                 <FormField
+                    control={form.control}
+                    name="contentPreferences"
+                    render={() => (
+                        <FormItem>
+                        <FormLabel>What kind of content are you interested in?</FormLabel>
+                        <FormDescription>This helps us tailor your feed.</FormDescription>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                            {contentPreferences.map((item) => (
+                            <FormField
+                                key={item.id}
+                                control={form.control}
+                                name="contentPreferences"
+                                render={({ field }) => {
+                                return (
+                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            const currentValue = field.value ?? [];
+                                            return checked
+                                            ? field.onChange([...currentValue, item.id])
+                                            : field.onChange(
+                                                currentValue.filter(
+                                                    (value) => value !== item.id
+                                                )
+                                                );
+                                        }}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                    </FormItem>
+                                );
+                                }}
+                            />
+                            ))}
+                        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+              </div>
+            )}
+
             <div className="flex gap-2 pt-4">
               {step > 1 && <Button variant="outline" type="button" className="w-full" onClick={() => setStep(s => s - 1)}>Back</Button>}
               <Button 
@@ -546,8 +666,8 @@ export default function SignupPage() {
                 onClick={handleNextStep}
                 disabled={isLoading || usernameStatus === 'checking'}
               >
-                {isLoading && step === 4 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {step === 4 ? 'Sign Up' : 'Continue'}
+                {isLoading && step === 5 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {step === 5 ? 'Finalize Profile' : 'Continue'}
               </Button>
             </div>
           </form>
