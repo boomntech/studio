@@ -1,3 +1,4 @@
+
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -11,17 +12,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Initialize Firebase Admin SDK
-try {
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY!
-  );
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(serviceAccount),
-    });
-  }
-} catch (e) {
-    console.error('Firebase Admin SDK initialization error', e);
+if (!getApps().length) {
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        console.error('FIREBASE_SERVICE_ACCOUNT_KEY is not set.');
+    } else {
+        try {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+            initializeApp({ credential: cert(serviceAccount) });
+        } catch (e) {
+            console.error('Firebase Admin SDK initialization error', e);
+        }
+    }
 }
 
 const db = getFirestore();
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
                 updatedAt: new Date(),
             }, { merge: true });
 
-            // Create transaction record
+            // Create transaction record for the deposit
             t.set(transactionRef, {
                 type: 'credit',
                 amount: amountInDollars,

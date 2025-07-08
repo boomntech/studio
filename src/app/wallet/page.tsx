@@ -119,8 +119,8 @@ export default function WalletPage() {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to create payment intent.');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create payment intent.');
         }
 
         const { clientSecret } = await response.json();
@@ -140,6 +140,14 @@ export default function WalletPage() {
   const formatDate = (timestamp: any) => {
     if (timestamp instanceof Timestamp) {
       return format(timestamp.toDate(), 'PP');
+    }
+    // Handle the case where timestamp might be a JS Date from a fresh webhook update
+    if (timestamp instanceof Date) {
+        return format(timestamp, 'PP');
+    }
+    // Fallback for serialized data or other formats
+    if (typeof timestamp === 'object' && timestamp.seconds) {
+        return format(new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate(), 'PP');
     }
     return 'N/A';
   };
@@ -170,6 +178,7 @@ export default function WalletPage() {
             if (!open) {
                 setClientSecret(null); // Reset on close
                 addMoneyForm.reset();
+                fetchWalletData(); // Refetch data in case a payment was made
             }
         }}>
             <DialogTrigger asChild>
