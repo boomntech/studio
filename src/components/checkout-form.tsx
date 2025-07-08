@@ -1,23 +1,49 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-interface CheckoutFormProps {
-    onSuccess: () => void;
-}
 
-export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
+export function CheckoutForm() {
     const stripe = useStripe();
     const elements = useElements();
     const { toast } = useToast();
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!stripe) {
+            return;
+        }
+
+        const clientSecret = new URLSearchParams(window.location.search).get("payment_intent_client_secret");
+
+        if (!clientSecret) {
+            return;
+        }
+
+        stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+            switch (paymentIntent?.status) {
+                case "succeeded":
+                    toast({ title: "Payment succeeded!"});
+                    break;
+                case "processing":
+                     toast({ title: "Your payment is processing."});
+                    break;
+                case "requires_payment_method":
+                    setMessage("Your payment was not successful, please try again.");
+                    break;
+                default:
+                    setMessage("Something went wrong.");
+                    break;
+            }
+        });
+    }, [stripe, toast]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,28 +55,20 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
         setIsProcessing(true);
         setMessage(null);
 
-        // In a real application, the return_url would be a dedicated page
-        // to show the status of the payment.
         const { error } = await stripe.confirmPayment({
             elements,
             confirmParams: {
                 return_url: `${window.location.origin}/wallet`,
             },
-            // By redirecting, we rely on webhooks for fulfillment.
-            // When the payment succeeds, Stripe will send a webhook to your backend,
-            // which will then update the user's wallet balance.
-            redirect: 'if_required',
         });
 
-
-        if (error) {
+        // This point will only be reached if there is an immediate error when
+        // confirming the payment. Otherwise, your customer will be redirected to
+        // the `return_url`.
+        if (error.type === "card_error" || error.type === "validation_error") {
             setMessage(error.message || "An unexpected error occurred.");
         } else {
-            // This 'else' block will only be reached if `redirect: 'if_required'`
-            // does not redirect. This happens for instant payment methods.
-            // For card payments, the page typically redirects.
-            // The secure way to fulfill the order is by listening for webhooks.
-            onSuccess();
+            setMessage("An unexpected error occurred.");
         }
 
         setIsProcessing(false);

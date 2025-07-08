@@ -28,6 +28,10 @@ const sendMoneyFormSchema = z.object({
   amount: z.coerce.number().positive({ message: 'Amount must be positive.' }).min(0.01, { message: 'Amount must be at least $0.01.' }),
 });
 
+const addMoneyFormSchema = z.object({
+    amount: z.coerce.number().min(1, { message: 'Amount must be at least $1.00.'}),
+});
+
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
     ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) 
     : Promise.resolve(null);
@@ -42,6 +46,7 @@ export default function WalletPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const sendMoneyForm = useForm<z.infer<typeof sendMoneyFormSchema>>({
     resolver: zodResolver(sendMoneyFormSchema),
@@ -49,6 +54,13 @@ export default function WalletPage() {
       username: '',
       amount: 0,
     },
+  });
+
+  const addMoneyForm = useForm<z.infer<typeof addMoneyFormSchema>>({
+    resolver: zodResolver(addMoneyFormSchema),
+    defaultValues: {
+        amount: 10,
+    }
   });
 
   const fetchWalletData = useCallback(async () => {
@@ -72,8 +84,10 @@ export default function WalletPage() {
     if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
         console.warn("Stripe publishable key is not set. Payment functionality will be disabled.");
     }
-    fetchWalletData();
-  }, [fetchWalletData]);
+    if (user) {
+        fetchWalletData();
+    }
+  }, [user, fetchWalletData]);
 
   const onSendMoneySubmit = async (values: z.infer<typeof sendMoneyFormSchema>) => {
     if (!user) return;
@@ -91,14 +105,32 @@ export default function WalletPage() {
     }
   };
 
-  const handleSuccessfulDeposit = () => {
-    setIsAddDialogOpen(false);
-    fetchWalletData();
-    toast({
-        title: "Deposit Successful!",
-        description: "The funds have been added to your wallet.",
-    });
-  }
+  const handleCreatePaymentIntent = async (values: z.infer<typeof addMoneyFormSchema>) => {
+    if (!user) return;
+    setIsProcessing(true);
+    try {
+        const response = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: values.amount * 100, // Convert to cents
+                userId: user.uid,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create payment intent.');
+        }
+
+        const { clientSecret } = await response.json();
+        setClientSecret(clientSecret);
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
 
 
   const formatCurrency = (amount: number) => {
@@ -133,7 +165,13 @@ export default function WalletPage() {
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+                setClientSecret(null); // Reset on close
+                addMoneyForm.reset();
+            }
+        }}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="h-20 flex-col gap-2" disabled={!stripePromise}>
                     <Plus className="w-6 h-6" />
@@ -144,23 +182,40 @@ export default function WalletPage() {
                 <DialogHeader>
                     <DialogTitle>Add Money to Wallet</DialogTitle>
                     <DialogDescription>
-                        Enter the amount and your payment details below.
+                        {clientSecret ? 'Complete your payment below.' : 'Enter the amount you wish to add.'}
                     </DialogDescription>
                 </DialogHeader>
-                 {stripePromise && (
-                    <Elements stripe={stripePromise} options={{
-                        // In a real app, you would fetch a clientSecret from your backend
-                        // and pass it here to initialize the payment flow.
-                        // clientSecret: 'pi_...', 
-                        mode: 'payment',
-                        amount: 500, // example: 500 cents = $5.00
-                        currency: 'usd',
-                        appearance: {
-                            theme: 'stripe'
-                        }
-                    }}>
-                        <CheckoutForm onSuccess={handleSuccessfulDeposit} />
+                 {clientSecret && stripePromise ? (
+                    <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+                        <CheckoutForm />
                     </Elements>
+                 ) : (
+                    <Form {...addMoneyForm}>
+                        <form onSubmit={addMoneyForm.handleSubmit(handleCreatePaymentIntent)} className="space-y-4">
+                            <FormField
+                                control={addMoneyForm.control}
+                                name="amount"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Amount (USD)</FormLabel>
+                                    <FormControl>
+                                    <div className="relative">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span className="text-muted-foreground sm:text-sm">$</span>
+                                        </div>
+                                        <Input type="number" placeholder="10.00" className="pl-7" {...field} />
+                                    </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                            <Button type="submit" disabled={isProcessing} className="w-full">
+                                {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Continue
+                            </Button>
+                        </form>
+                    </Form>
                  )}
             </DialogContent>
         </Dialog>
