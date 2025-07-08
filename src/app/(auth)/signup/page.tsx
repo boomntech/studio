@@ -51,6 +51,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -100,9 +102,21 @@ const formSchema = z.object({
   // Step 4
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
   interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
+  industry: z.string().optional(),
+  isRunningBusiness: z.boolean().default(false).optional(),
+  businessName: z.string().optional(),
+  businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
+}).refine(data => {
+    if (data.isRunningBusiness && (!data.businessName || data.businessName.length === 0)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Business name is required if you are running a business.",
+    path: ["businessName"],
 });
 
 // Real function to check username availability against Firestore
@@ -122,7 +136,7 @@ const stepDescriptions = [
     "Get started with the basics.", 
     "This helps us personalize your experience.", 
     "This information helps in connecting you with people and events nearby.",
-    "What are your professional and personal interests?"
+    "Tell us about your professional background and personal interests."
 ];
 
 export default function SignupPage() {
@@ -162,8 +176,14 @@ export default function SignupPage() {
       interests: [],
       enableTwoFactor: false,
       enableBiometrics: false,
+      industry: '',
+      isRunningBusiness: false,
+      businessName: '',
+      businessWebsite: '',
     },
   });
+  
+  const isRunningBusiness = form.watch('isRunningBusiness');
 
   const handleUsernameCheck = useCallback(
     async (username: string) => {
@@ -227,7 +247,7 @@ export default function SignupPage() {
       fieldsToValidate = ['country', 'city', 'state'];
     }
     if (step === 4) {
-      fieldsToValidate = ['occupations', 'interests'];
+      fieldsToValidate = ['occupations', 'interests', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
     }
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -461,6 +481,14 @@ export default function SignupPage() {
               <div className="space-y-4">
                 <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
+                {isRunningBusiness && (
+                  <div className="space-y-4">
+                     <FormField control={form.control} name="businessName" render={({ field }) => ( <FormItem> <FormLabel>Business Name</FormLabel> <FormControl><Input placeholder="Your Company LLC" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                     <FormField control={form.control} name="businessWebsite" render={({ field }) => ( <FormItem> <FormLabel>Business Website (Optional)</FormLabel> <FormControl><Input placeholder="https://yourcompany.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                  </div>
+                )}
               </div>
             )}
 

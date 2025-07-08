@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud, Briefcase } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -40,7 +40,20 @@ const profileFormSchema = z.object({
   state: z.string().optional(),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
   interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
+  industry: z.string().optional(),
+  isRunningBusiness: z.boolean().default(false).optional(),
+  businessName: z.string().optional(),
+  businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+}).refine(data => {
+    if (data.isRunningBusiness && (!data.businessName || data.businessName.length === 0)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Business name is required if you are running a business.",
+    path: ["businessName"],
 });
+
 
 // Real function to check username availability against Firestore
 const checkUsernameAvailability = async (username: string, currentUsername?: string): Promise<{ available: boolean; suggestions: string[] }> => {
@@ -96,8 +109,14 @@ export default function SettingsPage() {
             state: '',
             occupations: [],
             interests: [],
+            industry: '',
+            isRunningBusiness: false,
+            businessName: '',
+            businessWebsite: '',
         },
     });
+    
+    const isRunningBusiness = profileForm.watch('isRunningBusiness');
 
     const handleUsernameCheck = useCallback(
       async (username: string) => {
@@ -171,6 +190,10 @@ export default function SettingsPage() {
                     state: profile?.state || '',
                     occupations: profile?.occupations || [],
                     interests: profile?.interests || [],
+                    industry: profile?.industry || '',
+                    isRunningBusiness: profile?.isRunningBusiness || false,
+                    businessName: profile?.businessName || '',
+                    businessWebsite: profile?.businessWebsite || '',
                 });
             };
     
@@ -522,7 +545,24 @@ export default function SettingsPage() {
                                     )}
                                 />
                             </div>
-                            <FormField
+                            <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
+                                {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Save Changes
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-3"><Briefcase className="h-6 w-6" /><span>Professional Information</span></CardTitle>
+                    <CardDescription>Update your professional and business details to tailor your experience.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(handleProfileUpdate)} className="space-y-4">
+                              <FormField
                                 control={profileForm.control}
                                 name="occupations"
                                 render={({ field }) => (
@@ -554,6 +594,14 @@ export default function SettingsPage() {
                                     </FormItem>
                                 )}
                             />
+                             <FormField control={profileForm.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                             <FormField control={profileForm.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
+                             {isRunningBusiness && (
+                                <div className="space-y-4">
+                                    <FormField control={profileForm.control} name="businessName" render={({ field }) => ( <FormItem> <FormLabel>Business Name</FormLabel> <FormControl><Input placeholder="Your Company LLC" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                                    <FormField control={profileForm.control} name="businessWebsite" render={({ field }) => ( <FormItem> <FormLabel>Business Website</FormLabel> <FormControl><Input placeholder="https://yourcompany.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                                </div>
+                             )}
                             <Button type="submit" disabled={isProfileLoading || usernameStatus === 'checking'}>
                                 {isProfileLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Changes

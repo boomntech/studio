@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -18,6 +19,10 @@ const UserProfileSchema = z.object({
   username: z.string(),
   interests: z.array(z.string()).describe("A list of the user's interests."),
   occupations: z.array(z.string()).optional().describe("The user's occupation(s)."),
+  industry: z.string().optional().describe("The user's industry."),
+  isRunningBusiness: z.boolean().optional().describe("Whether the user is running a business."),
+  businessName: z.string().optional().describe("The user's business name."),
+  businessWebsite: z.string().optional().describe("The user's business website."),
   city: z.string().optional(),
   state: z.string().optional(),
   gender: z.string().optional(),
@@ -91,13 +96,14 @@ const prompt = ai.definePrompt({
   output: { schema: GetRecommendedPostsOutputSchema },
   prompt: `You are an advanced social media recommendation engine. Your task is to re-order a list of posts to create a personalized 'For You' feed for a specific user.
 
-Analyze the user's profile provided in the input: their interests, occupation, location, and other demographic data.
+Analyze the user's profile provided in the input: their interests, occupation, industry, location, and other demographic data.
 Then, for the given list of posts, determine a relevance score for each one. The most relevant posts should come first.
 
 Factors to consider for relevance:
 - Direct match with user's interests (from 'tags').
 - Posts that are trending.
-- Content related to the user's occupation.
+- Content related to the user's occupation and industry.
+- If the user is running a business, posts from other businesses or about entrepreneurship may be more relevant.
 - Posts that might be popular with users of a similar demographic profile.
 
 For each post in the returned list, you MUST include a 'recommendationReason' field explaining in a short, friendly sentence why this post was recommended to the user (e.g., "Because you're interested in tech," or "Trending in your area!").
