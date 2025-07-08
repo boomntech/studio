@@ -91,10 +91,13 @@ const formSchema = z.object({
   gender: z.string({ required_error: "Please select a gender." }),
   race: z.string().optional(),
   sexualOrientation: z.string().optional(),
+
+  // Step 3
+  country: z.string().min(1, { message: "Country is required." }),
   city: z.string().min(1, { message: 'City is required.' }),
   state: z.string().min(1, { message: 'State is required.' }),
 
-  // Step 3
+  // Step 4
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
   interests: z.array(z.string()).max(5, { message: "You can select up to 5 interests." }).optional(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -114,10 +117,11 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
-const stepTitles = ["Create your account", "Tell us about yourself", "Customize your profile"];
+const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile"];
 const stepDescriptions = [
     "Get started with the basics.", 
     "This helps us personalize your experience.", 
+    "This information helps in connecting you with people and events nearby.",
     "What are your professional and personal interests?"
 ];
 
@@ -151,6 +155,7 @@ export default function SignupPage() {
       gender: '',
       race: '',
       sexualOrientation: '',
+      country: '',
       city: '',
       state: '',
       occupations: [],
@@ -216,16 +221,19 @@ export default function SignupPage() {
       }
     }
     if (step === 2) {
-      fieldsToValidate = ['dob', 'gender', 'city', 'state'];
+      fieldsToValidate = ['dob', 'gender'];
     }
     if (step === 3) {
+      fieldsToValidate = ['country', 'city', 'state'];
+    }
+    if (step === 4) {
       fieldsToValidate = ['occupations', 'interests'];
     }
 
     const isValid = await form.trigger(fieldsToValidate);
     if (!isValid) return;
 
-    if (step < 3) {
+    if (step < 4) {
       setStep(s => s + 1);
     } else {
       await form.handleSubmit(onSubmit)();
@@ -292,7 +300,7 @@ export default function SignupPage() {
         <div className="flex flex-col items-center text-center space-y-4">
           <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
           <div className="w-full space-y-2">
-            <Progress value={(step / 3) * 100} className="w-full" />
+            <Progress value={(step / 4) * 100} className="w-full" />
             <CardTitle>{stepTitles[step - 1]}</CardTitle>
             <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
           </div>
@@ -433,16 +441,23 @@ export default function SignupPage() {
               <div className="space-y-4">
                 <FormField control={form.control} name="dob" render={({ field }) => ( <FormItem className="flex flex-col"> <FormLabel>Date of birth</FormLabel> <Popover> <PopoverTrigger asChild> <FormControl> <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> </Button> </FormControl> </PopoverTrigger> <PopoverContent className="w-auto p-0" align="start"> <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /> </PopoverContent> </Popover> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="e.g. San Francisco" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-                    <FormField control={form.control} name="state" render={({ field }) => ( <FormItem> <FormLabel>State / Province</FormLabel> <FormControl> <Input placeholder="e.g. California" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-                </div>
+                <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
+                <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
               </div>
             )}
 
             {step === 3 && (
+                <div className="space-y-4">
+                    <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>Country</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your country" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="united-states">United States</SelectItem> <SelectItem value="canada">Canada</SelectItem> <SelectItem value="mexico">Mexico</SelectItem> <SelectItem value="united-kingdom">United Kingdom</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>City</FormLabel> <FormControl> <Input placeholder="e.g. San Francisco" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+                        <FormField control={form.control} name="state" render={({ field }) => ( <FormItem> <FormLabel>State / Province</FormLabel> <FormControl> <Input placeholder="e.g. California" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                    <FormDescription>We'll add autofill here soon using the Google Maps API!</FormDescription>
+                </div>
+            )}
+
+            {step === 4 && (
               <div className="space-y-4">
                 <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
                 <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
@@ -457,8 +472,8 @@ export default function SignupPage() {
                 onClick={handleNextStep}
                 disabled={isLoading || usernameStatus === 'checking'}
               >
-                {isLoading && step === 3 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {step === 3 ? 'Sign Up' : 'Continue'}
+                {isLoading && step === 4 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {step === 4 ? 'Sign Up' : 'Continue'}
               </Button>
             </div>
           </form>

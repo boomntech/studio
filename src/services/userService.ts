@@ -28,6 +28,7 @@ export interface UserProfile {
   gender?: string;
   race?: string;
   sexualOrientation?: string;
+  country?: string;
   city?: string;
   state?: string;
   occupations?: string[];

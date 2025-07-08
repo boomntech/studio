@@ -35,6 +35,7 @@ const profileFormSchema = z.object({
   gender: z.string().optional(),
   race: z.string().optional(),
   sexualOrientation: z.string().optional(),
+  country: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
@@ -90,6 +91,7 @@ export default function SettingsPage() {
             gender: '',
             race: '',
             sexualOrientation: '',
+            country: '',
             city: '',
             state: '',
             occupations: [],
@@ -164,6 +166,7 @@ export default function SettingsPage() {
                     gender: profile?.gender || '',
                     race: profile?.race || '',
                     sexualOrientation: profile?.sexualOrientation || '',
+                    country: profile?.country || '',
                     city: profile?.city || '',
                     state: profile?.state || '',
                     occupations: profile?.occupations || [],
@@ -459,8 +462,32 @@ export default function SettingsPage() {
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="straight">Straight</SelectItem>
-                                            <SelectItem value="lgbtq">LGBTQ</SelectItem>
+                                            <SelectItem value="lgbtq">LGBTQ+</SelectItem>
                                             <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={profileForm.control}
+                                name="country"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Country</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select your country" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="united-states">United States</SelectItem>
+                                            <SelectItem value="canada">Canada</SelectItem>
+                                            <SelectItem value="mexico">Mexico</SelectItem>
+                                            <SelectItem value="united-kingdom">United Kingdom</SelectItem>
+                                            <SelectItem value="other">Other</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
