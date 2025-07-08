@@ -22,7 +22,7 @@ import {
 } from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
-import { saveUserProfile, isUsernameTaken } from '@/services/userService';
+import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -379,7 +379,63 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignUp = async () => {
-    // ... (existing implementation)
+    if (!auth) {
+      toast({ variant: 'destructive', title: 'Firebase not configured.' });
+      return;
+    }
+    setIsGoogleLoading(true);
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+
+      const existingProfile = await getUserProfile(user.uid);
+
+      if (!existingProfile) {
+        let username = user.email?.split('@')[0] || `user${Math.floor(Math.random() * 10000)}`;
+        let usernameIsTaken = await isUsernameTaken(username);
+        let attempts = 0;
+        
+        while (usernameIsTaken && attempts < 5) {
+            const newUsername = `${username}${Math.floor(Math.random() * 100)}`;
+            if (!(await isUsernameTaken(newUsername))) {
+                username = newUsername;
+                usernameIsTaken = false;
+            }
+            attempts++;
+        }
+        if(usernameIsTaken) {
+            username = `user${user.uid.substring(0, 8)}`;
+        }
+
+        await saveUserProfile(user.uid, {
+            name: user.displayName || 'New User',
+            username: username,
+            email: user.email!,
+            avatarUrl: user.photoURL || undefined,
+            interests: [],
+            occupations: [],
+            goals: [],
+            contentPreferences: [],
+        });
+
+        toast({
+          title: 'Welcome to Boomn!',
+          description: "We've created a profile for you. You can customize it in the settings.",
+        });
+      }
+
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Google Sign-Up Failed',
+        description: error.message,
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   const handleSendSignInLink = async () => {

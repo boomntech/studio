@@ -145,10 +145,14 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
+      let description = error.message;
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        description = 'An account with this email already exists. Please sign in with your original method (e.g., password) to use your account.';
+      }
       toast({
         variant: 'destructive',
         title: 'Google Sign-In Failed',
-        description: error.message,
+        description,
       });
     } finally {
       setIsGoogleLoading(false);
