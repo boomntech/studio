@@ -48,6 +48,7 @@ import { Switch } from '@/components/ui/switch';
 import { LocationAutocomplete } from '@/components/location-autocomplete';
 import { Textarea } from '@/components/ui/textarea';
 import { AvatarUpload } from '@/components/avatar-upload';
+import { MontanaTip } from '@/components/montana-tip';
 
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -445,298 +446,316 @@ export default function SignupPage() {
         <Form {...form}>
           <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
             {step === 1 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl><Input placeholder="Your full name" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            placeholder="your_username" 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(e);
-                              debouncedUsernameCheck(e.target.value);
-                            }}
-                          />
-                          <div className="absolute inset-y-0 right-3 flex items-center">
-                            {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                            {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
-                            {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+              <>
+                <MontanaTip tip="Let's get the basics down first. Choose a unique username that represents you!" />
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl><Input placeholder="Your full name" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              placeholder="your_username" 
+                              {...field} 
+                              onChange={(e) => {
+                                field.onChange(e);
+                                debouncedUsernameCheck(e.target.value);
+                              }}
+                            />
+                            <div className="absolute inset-y-0 right-3 flex items-center">
+                              {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                              {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
+                              {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+                            </div>
                           </div>
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
-                          <div className="space-x-1">
-                            <span>Suggestions:</span>
-                            {usernameSuggestions.map((s, i) => (
-                              <Button
-                                key={s}
-                                type="button"
-                                variant="link"
-                                size="sm"
-                                className="p-0 h-auto"
-                                onClick={() => {
-                                  form.setValue('username', s, { shouldValidate: true });
-                                  handleUsernameCheck(s);
-                                }}
-                              >
-                                {s}{i < usernameSuggestions.length -1 && ','}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        </FormControl>
+                        <FormDescription>
+                          {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
+                            <div className="space-x-1">
+                              <span>Suggestions:</span>
+                              {usernameSuggestions.map((s, i) => (
+                                <Button
+                                  key={s}
+                                  type="button"
+                                  variant="link"
+                                  size="sm"
+                                  className="p-0 h-auto"
+                                  onClick={() => {
+                                    form.setValue('username', s, { shouldValidate: true });
+                                    handleUsernameCheck(s);
+                                  }}
+                                >
+                                  {s}{i < usernameSuggestions.length -1 && ','}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
             )}
 
             {step === 2 && (
-              <div className="space-y-4">
-                <FormField control={form.control} name="dob" render={({ field }) => ( <FormItem className="flex flex-col"> <FormLabel>Date of birth</FormLabel> <Popover> <PopoverTrigger asChild> <FormControl> <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> </Button> </FormControl> </PopoverTrigger> <PopoverContent className="w-auto p-0" align="start"> <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /> </PopoverContent> </Popover> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-              </div>
+              <>
+                <MontanaTip tip="Tell me a bit about you. This info helps me personalize your experience on Boomn." />
+                <div className="space-y-4">
+                  <FormField control={form.control} name="dob" render={({ field }) => ( <FormItem className="flex flex-col"> <FormLabel>Date of birth</FormLabel> <Popover> <PopoverTrigger asChild> <FormControl> <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}> {field.value ? format(field.value, "PPP") : <span>Pick a date</span>} <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /> </Button> </FormControl> </PopoverTrigger> <PopoverContent className="w-auto p-0" align="start"> <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus /> </PopoverContent> </Popover> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                </div>
+              </>
             )}
 
             {step === 3 && (
-                <div className="space-y-4">
-                    <FormItem>
-                        <FormLabel>Search for your Location</FormLabel>
-                        <FormControl>
-                            <LocationAutocomplete />
-                        </FormControl>
-                        <FormDescription>
-                            Select your city from the list to autofill the fields below.
-                        </FormDescription>
-                    </FormItem>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="city"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>City</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. San Francisco" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="state"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>State / Province</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. California" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Country</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g. United States" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                <>
+                  <MontanaTip tip="Where in the world are you? This helps connect you with people and events in your area." />
+                  <div className="space-y-4">
+                      <FormItem>
+                          <FormLabel>Search for your Location</FormLabel>
+                          <FormControl>
+                              <LocationAutocomplete />
+                          </FormControl>
+                          <FormDescription>
+                              Select your city from the list to autofill the fields below.
+                          </FormDescription>
+                      </FormItem>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                              control={form.control}
+                              name="city"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>City</FormLabel>
+                                      <FormControl>
+                                          <Input placeholder="e.g. San Francisco" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name="state"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <FormLabel>State / Province</FormLabel>
+                                      <FormControl>
+                                          <Input placeholder="e.g. California" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+                      <FormField
+                          control={form.control}
+                          name="country"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormLabel>Country</FormLabel>
+                                  <FormControl>
+                                      <Input placeholder="e.g. United States" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                  </div>
+                </>
             )}
 
             {step === 4 && (
-              <div className="space-y-4">
-                <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
-                {isRunningBusiness && (
-                  <div className="space-y-4">
-                     <FormField control={form.control} name="businessName" render={({ field }) => ( <FormItem> <FormLabel>Business Name</FormLabel> <FormControl><Input placeholder="Your Company LLC" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                     <FormField control={form.control} name="businessWebsite" render={({ field }) => ( <FormItem> <FormLabel>Business Website (Optional)</FormLabel> <FormControl><Input placeholder="https://yourcompany.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                  </div>
-                )}
-              </div>
+              <>
+                <MontanaTip tip="What do you do? Adding your professional details helps you network with the right people." />
+                <div className="space-y-4">
+                  <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
+                  {isRunningBusiness && (
+                    <div className="space-y-4">
+                       <FormField control={form.control} name="businessName" render={({ field }) => ( <FormItem> <FormLabel>Business Name</FormLabel> <FormControl><Input placeholder="Your Company LLC" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                       <FormField control={form.control} name="businessWebsite" render={({ field }) => ( <FormItem> <FormLabel>Business Website (Optional)</FormLabel> <FormControl><Input placeholder="https://yourcompany.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             {step === 5 && (
-              <div className="space-y-4">
-                 <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+              <>
+                <MontanaTip tip="What are you into? Your interests and goals fuel the 'For You' feed and help you find your community." />
+                <div className="space-y-4">
+                  <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+                    <FormField
+                      control={form.control}
+                      name="goals"
+                      render={() => (
+                          <FormItem>
+                          <FormLabel>What are your goals?</FormLabel>
+                          <FormDescription>Select up to 3 that are most important to you.</FormDescription>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                              {goals.map((item) => (
+                              <FormField
+                                  key={item.id}
+                                  control={form.control}
+                                  name="goals"
+                                  render={({ field }) => {
+                                  return (
+                                      <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                          <Checkbox
+                                          checked={field.value?.includes(item.id)}
+                                          onCheckedChange={(checked) => {
+                                              const currentValue = field.value ?? [];
+                                              if (checked) {
+                                                  if (currentValue.length < 3) {
+                                                      field.onChange([...currentValue, item.id]);
+                                                  } else {
+                                                      toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
+                                                  }
+                                              } else {
+                                                  field.onChange(currentValue.filter((value) => value !== item.id));
+                                              }
+                                          }}
+                                          />
+                                      </FormControl>
+                                      <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                      </FormItem>
+                                  );
+                                  }}
+                              />
+                              ))}
+                          </div>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
                   <FormField
-                    control={form.control}
-                    name="goals"
-                    render={() => (
-                        <FormItem>
-                        <FormLabel>What are your goals?</FormLabel>
-                        <FormDescription>Select up to 3 that are most important to you.</FormDescription>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                            {goals.map((item) => (
-                            <FormField
-                                key={item.id}
-                                control={form.control}
-                                name="goals"
-                                render={({ field }) => {
-                                return (
-                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                            const currentValue = field.value ?? [];
-                                            if (checked) {
-                                                if (currentValue.length < 3) {
-                                                    field.onChange([...currentValue, item.id]);
-                                                } else {
-                                                    toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
-                                                }
-                                            } else {
-                                                field.onChange(currentValue.filter((value) => value !== item.id));
-                                            }
-                                        }}
-                                        />
-                                    </FormControl>
-                                    <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
-                                    </FormItem>
-                                );
-                                }}
-                            />
-                            ))}
-                        </div>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                 />
-                 <FormField
-                    control={form.control}
-                    name="contentPreferences"
-                    render={() => (
-                        <FormItem>
-                        <FormLabel>What kind of content are you interested in?</FormLabel>
-                        <FormDescription>This helps us tailor your feed.</FormDescription>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                            {contentPreferences.map((item) => (
-                            <FormField
-                                key={item.id}
-                                control={form.control}
-                                name="contentPreferences"
-                                render={({ field }) => {
-                                return (
-                                    <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                        <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                            const currentValue = field.value ?? [];
-                                            return checked
-                                            ? field.onChange([...currentValue, item.id])
-                                            : field.onChange(
-                                                currentValue.filter(
-                                                    (value) => value !== item.id
-                                                )
-                                                );
-                                        }}
-                                        />
-                                    </FormControl>
-                                    <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
-                                    </FormItem>
-                                );
-                                }}
-                            />
-                            ))}
-                        </div>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-              </div>
+                      control={form.control}
+                      name="contentPreferences"
+                      render={() => (
+                          <FormItem>
+                          <FormLabel>What kind of content are you interested in?</FormLabel>
+                          <FormDescription>This helps us tailor your feed.</FormDescription>
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                              {contentPreferences.map((item) => (
+                              <FormField
+                                  key={item.id}
+                                  control={form.control}
+                                  name="contentPreferences"
+                                  render={({ field }) => {
+                                  return (
+                                      <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                          <Checkbox
+                                          checked={field.value?.includes(item.id)}
+                                          onCheckedChange={(checked) => {
+                                              const currentValue = field.value ?? [];
+                                              return checked
+                                              ? field.onChange([...currentValue, item.id])
+                                              : field.onChange(
+                                                  currentValue.filter(
+                                                      (value) => value !== item.id
+                                                  )
+                                                  );
+                                          }}
+                                          />
+                                      </FormControl>
+                                      <FormLabel className="font-normal text-sm">{item.label}</FormLabel>
+                                      </FormItem>
+                                  );
+                                  }}
+                              />
+                              ))}
+                          </div>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                </div>
+              </>
             )}
 
             {step === 6 && (
-                <div className="space-y-6">
-                    <AvatarUpload onFileChange={setAvatarFile} fallbackText={form.getValues('name')?.charAt(0) || 'U'} />
-                    <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Your Bio</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                placeholder="Tell us a little about yourself..."
-                                className="resize-none"
-                                {...field}
-                                />
-                            </FormControl>
-                             <FormDescription>
-                                A brief description of who you are. This will appear on your profile.
-                            </FormDescription>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                <>
+                  <MontanaTip tip="Almost there! A great profile picture and bio make the best first impression." />
+                  <div className="space-y-6">
+                      <AvatarUpload onFileChange={setAvatarFile} fallbackText={form.getValues('name')?.charAt(0) || 'U'} />
+                      <FormField
+                          control={form.control}
+                          name="bio"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Your Bio</FormLabel>
+                              <FormControl>
+                                  <Textarea
+                                  placeholder="Tell us a little about yourself..."
+                                  className="resize-none"
+                                  {...field}
+                                  />
+                              </FormControl>
+                               <FormDescription>
+                                  A brief description of who you are. This will appear on your profile.
+                              </FormDescription>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                  </div>
+                </>
             )}
 
 

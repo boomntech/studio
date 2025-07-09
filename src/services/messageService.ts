@@ -50,23 +50,23 @@ export interface Message {
 }
 
 // --- CONSTANTS ---
-const BOOMN_BOT_UID = 'boomn_bot';
-const BOOMN_BOT_PROFILE = {
-  uid: BOOMN_BOT_UID,
-  name: 'Boomn Bot',
-  username: 'boomnbot',
-  avatarUrl: 'https://placehold.co/40x40.png', 
+const MONTANA_BOT_UID = 'montana_bot';
+const MONTANA_BOT_PROFILE = {
+  uid: MONTANA_BOT_UID,
+  name: 'Montana',
+  username: 'montana',
+  avatarUrl: 'https://placehold.co/128x128.png', 
 };
 
-const WELCOME_MESSAGE = `Welcome to Boomn! 🎉 We're so excited to have you here.
+const WELCOME_MESSAGE = `Hey, I'm Montana, your guide to getting started on Boomn! Welcome! 🎉
 
-Explore the feed, connect with others, and don't hesitate to reach out if you have any questions. Happy boomn'ing!`;
+I'm here to help you get the most out of the platform. Feel free to explore the feed, connect with others, and don't hesitate to reach out if you have any questions. Happy boomn'ing!`;
 
 
 // --- FUNCTIONS ---
 
 /**
- * Sends an initial welcome message to a new user from the Boomn Bot.
+ * Sends an initial welcome message to a new user from Montana.
  * This creates a new conversation and the first message.
  * @param newUserId The UID of the new user.
  * @param newUserProfile The profile of the new user.
@@ -77,14 +77,14 @@ export const sendInitialWelcomeMessage = async (newUserId: string, newUserProfil
     return;
   }
 
-  const participantIds = [BOOMN_BOT_UID, newUserId].sort();
+  const participantIds = [MONTANA_BOT_UID, newUserId].sort();
   const conversationId = participantIds.join('_');
   const conversationRef = doc(firestore, 'conversations', conversationId);
 
   const now = serverTimestamp();
   
   const welcomeMessageData = {
-      senderId: BOOMN_BOT_UID,
+      senderId: MONTANA_BOT_UID,
       text: WELCOME_MESSAGE,
       timestamp: now,
   };
@@ -95,10 +95,10 @@ export const sendInitialWelcomeMessage = async (newUserId: string, newUserProfil
     type: 'direct',
     participants: participantIds,
     participantInfo: {
-      [BOOMN_BOT_UID]: {
-        name: BOOMN_BOT_PROFILE.name,
-        avatarUrl: BOOMN_BOT_PROFILE.avatarUrl,
-        username: BOOMN_BOT_PROFILE.username,
+      [MONTANA_BOT_UID]: {
+        name: MONTANA_BOT_PROFILE.name,
+        avatarUrl: MONTANA_BOT_PROFILE.avatarUrl,
+        username: MONTANA_BOT_PROFILE.username,
       },
       [newUserId]: {
         name: newUserProfile.name,
@@ -108,7 +108,7 @@ export const sendInitialWelcomeMessage = async (newUserId: string, newUserProfil
     },
     lastMessage: {
         text: WELCOME_MESSAGE,
-        senderId: BOOMN_BOT_UID,
+        senderId: MONTANA_BOT_UID,
         timestamp: now,
     },
     updatedAt: now,
@@ -263,7 +263,7 @@ export const createGroupConversation = async (creatorId: string, participantIds:
         participantInfo,
         lastMessage: {
             text: `Group created by ${creatorName}.`,
-            senderId: BOOMN_BOT_UID, // System message
+            senderId: MONTANA_BOT_UID, // System message
             timestamp: now,
         },
         updatedAt: now,
