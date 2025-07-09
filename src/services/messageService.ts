@@ -55,7 +55,7 @@ const MONTANA_BOT_PROFILE = {
   uid: MONTANA_BOT_UID,
   name: 'Montana',
   username: 'montana',
-  avatarUrl: 'https://placehold.co/128x128.png', 
+  avatarUrl: 'https://firebasestorage.googleapis.com/v0/b/boomn-kzlll.firebasestorage.app/o/1000006710.png?alt=media&token=3beb0bcc-6829-4b4a-95c5-842dc0fa16ce', 
 };
 
 const WELCOME_MESSAGE = `Hey, I'm Montana, your guide to getting started on Boomn! Welcome! 🎉

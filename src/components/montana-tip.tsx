@@ -13,8 +13,7 @@ export function MontanaTip({ tip, className }: MontanaTipProps) {
   return (
     <div className={cn("flex items-start gap-3 p-3 bg-secondary rounded-lg mb-6", className)}>
       <Avatar className="h-10 w-10 border-2 border-primary">
-        {/* You can replace this placeholder with the actual URL to Montana's avatar */}
-        <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="man headphones cartoon" />
+        <AvatarImage src="https://firebasestorage.googleapis.com/v0/b/boomn-kzlll.firebasestorage.app/o/1000006710.png?alt=media&token=3beb0bcc-6829-4b4a-95c5-842dc0fa16ce" />
         <AvatarFallback>M</AvatarFallback>
       </Avatar>
       <div className="flex-1 pt-1">
