@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, Fingerprint, UploadCloud, Briefcase, Sparkles, Goal, FileText } from 'lucide-react';
+import { Moon, Sun, Languages, Database, ShieldCheck, Loader2, User as UserIcon, Check, X, CalendarIcon, UploadCloud, Briefcase, Sparkles, Goal, FileText } from 'lucide-react';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -113,11 +113,6 @@ export default function SettingsPage() {
     const [step, setStep] = useState(1); // 1: enter phone, 2: enter code
     const [phoneNumber, setPhoneNumber] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
-
-    // Passkey State
-    const [passkeys, setPasskeys] = useState<fbAuth.MultiFactorInfo[]>([]);
-    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
-    const [deletingPasskeyId, setDeletingPasskeyId] = useState<string | null>(null);
 
     // Username state
     const [initialUsername, setInitialUsername] = useState('');
@@ -236,7 +231,6 @@ export default function SettingsPage() {
     
             fetchProfile();
             setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.some(f => f.factorId === 'phone'));
-            setPasskeys(user.multiFactor.enrolledFactors.filter(f => f.factorId === 'passkey'));
         }
     }, [user, profileForm]);
     
@@ -329,41 +323,6 @@ export default function SettingsPage() {
             setIsTwoFactorEnabled(false);
             setIsLoading(false);
         }, 1000);
-    };
-
-    const handleRegisterNewPasskey = async () => {
-        if (!user) return;
-        setIsPasskeyLoading(true);
-        try {
-            const provider = new fbAuth.PasskeyAuthProvider();
-            await fbAuth.linkWithPopup(user, provider);
-            // Refresh passkeys from user object
-            await user.reload();
-            const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
-            setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
-            toast({ title: 'Passkey Registered Successfully!' });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
-        } finally {
-            setIsPasskeyLoading(false);
-        }
-    };
-    
-    const handleRemovePasskey = async (factor: fbAuth.MultiFactorInfo) => {
-        if (!user) return;
-        setDeletingPasskeyId(factor.uid);
-        try {
-            await fbAuth.multiFactor(user).unenroll(factor);
-            // Refresh passkeys from user object
-            await user.reload();
-            const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
-            setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
-            toast({ title: 'Passkey Removed' });
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Removal Failed', description: error.message });
-        } finally {
-            setDeletingPasskeyId(null);
-        }
     };
 
     if (!isMounted || !user) {
@@ -863,47 +822,6 @@ export default function SettingsPage() {
                             </Dialog>
                         </div>
                     )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-3"><Fingerprint className="h-6 w-6" /><span>Biometric Sign-in (Passkeys)</span></CardTitle>
-                    <CardDescription>Manage the passkeys associated with your account for fast and secure sign-in.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {passkeys.length > 0 ? (
-                        <ul className="space-y-2">
-                            {passkeys.map((pk) => (
-                                <li key={pk.uid} className="flex items-center justify-between rounded-lg border p-4">
-                                    <div>
-                                        <p className="font-medium">{pk.displayName || `Passkey`}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Enrolled: {format(new Date(pk.enrollmentTime), 'PPP')}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleRemovePasskey(pk)}
-                                        disabled={deletingPasskeyId === pk.uid}
-                                    >
-                                        {deletingPasskeyId === pk.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remove'}
-                                    </Button>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">You have no passkeys registered.</p>
-                    )}
-                    <Button onClick={handleRegisterNewPasskey} disabled={isPasskeyLoading}>
-                        {isPasskeyLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Fingerprint className="mr-2 h-4 w-4" />
-                        )}
-                        Register a new passkey
-                    </Button>
                 </CardContent>
             </Card>
 

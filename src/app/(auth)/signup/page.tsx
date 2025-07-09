@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone, Check, X, CalendarIcon, Fingerprint } from 'lucide-react';
+import { Loader2, Mail, Phone, Check, X, CalendarIcon } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -81,7 +81,6 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   enableTwoFactor: z.boolean().default(false).optional(),
-  enableBiometrics: z.boolean().default(false).optional(),
   
   // Step 2
   dob: z.date({ required_error: "A date of birth is required." }),
@@ -201,7 +200,6 @@ export default function SignupPage() {
       goals: [],
       contentPreferences: [],
       enableTwoFactor: false,
-      enableBiometrics: false,
       industry: '',
       isRunningBusiness: false,
       businessName: '',
@@ -322,35 +320,12 @@ export default function SignupPage() {
       
       await fbAuth.updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
       
-      const { password, confirmPassword, enableTwoFactor, enableBiometrics, ...profileData } = values;
+      const { password, confirmPassword, enableTwoFactor, ...profileData } = values;
       await saveUserProfile(userCredential.user.uid, {
         ...profileData,
         email: userCredential.user.email!,
         avatarUrl: finalAvatarUrl || undefined,
       });
-      
-      if (values.enableBiometrics) {
-        toast({
-          title: 'Registering Passkey',
-          description: 'Please follow the prompts from your browser or device.',
-        });
-        try {
-          const provider = new fbAuth.PasskeyAuthProvider();
-          await fbAuth.linkWithPopup(userCredential.user, provider);
-          
-          toast({
-            title: 'Passkey Registered!',
-            description: 'You can now sign in using your passkey.',
-          });
-
-        } catch (passkeyError: any) {
-          toast({
-            variant: 'destructive',
-            title: 'Passkey Registration Failed',
-            description: 'You can register a passkey later in your account settings.',
-          });
-        }
-      }
 
       router.push('/');
     } catch (error: any) {
@@ -558,21 +533,6 @@ export default function SignupPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Enable Two-Factor Authentication</FormLabel>
                         <FormDescription>Secure your account with an extra layer of protection.</FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="enableBiometrics"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="flex items-center gap-2"><Fingerprint className="h-4 w-4" />Enable Passkey</FormLabel>
-                        <FormDescription>Sign in faster using your fingerprint or face recognition.</FormDescription>
                       </div>
                     </FormItem>
                   )}

@@ -29,7 +29,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Fingerprint } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -66,14 +66,13 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
   const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<fbAuth.ConfirmationResult | null>(null);
 
-  const anyLoading = isLoading || isGoogleLoading || isPhoneLoading || isBiometricLoading;
+  const anyLoading = isLoading || isGoogleLoading || isPhoneLoading;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -148,27 +147,6 @@ export default function LoginPage() {
       });
     } finally {
       setIsGoogleLoading(false);
-    }
-  };
-
-  const handleBiometricSignIn = async () => {
-    if (!auth) {
-      toast({ variant: 'destructive', title: 'Firebase not configured.' });
-      return;
-    }
-    setIsBiometricLoading(true);
-    try {
-      const provider = new fbAuth.PasskeyAuthProvider();
-      await fbAuth.signInWithPopup(auth, provider);
-      router.push('/');
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Passkey Sign-In Failed',
-        description: error.code === 'auth/cancelled-popup-request' ? 'Sign-in cancelled.' : error.message,
-      });
-    } finally {
-      setIsBiometricLoading(false);
     }
   };
 
@@ -268,7 +246,7 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
            <Button
             variant="outline"
             type="button"
@@ -282,20 +260,6 @@ export default function LoginPage() {
               <GoogleIcon className="mr-2 h-4 w-4" />
             )}
             Google
-          </Button>
-           <Button
-            variant="outline"
-            type="button"
-            disabled={anyLoading}
-            onClick={handleBiometricSignIn}
-            className="w-full"
-          >
-            {isBiometricLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Fingerprint className="mr-2 h-4 w-4" />
-            )}
-            Passkey
           </Button>
         </div>
          <div className="relative my-4">
