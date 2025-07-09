@@ -306,44 +306,63 @@ export default function SignupPage() {
       return;
     }
 
+    let userCredential: fbAuth.UserCredential | null = null;
     try {
-      const userCredential = await fbAuth.createUserWithEmailAndPassword(
+      // Step 1: Create user in Firebase Auth.
+      userCredential = await fbAuth.createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
+    } catch (authError: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: authError.message,
+      });
+      setIsLoading(false);
+      return;
+    }
 
+    try {
+      // Step 2-5: Set up user profile, avatar, etc.
+      const user = userCredential.user;
       let finalAvatarUrl = '';
       if (avatarFile && storage) {
-        const avatarStorageRef = storageRef(storage, `avatars/${userCredential.user.uid}`);
+        const avatarStorageRef = storageRef(storage, `avatars/${user.uid}`);
         await uploadBytes(avatarStorageRef, avatarFile);
         finalAvatarUrl = await getDownloadURL(avatarStorageRef);
       }
       
-      await fbAuth.updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
+      await fbAuth.updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
       
       const { password, confirmPassword, enableTwoFactor, ...profileData } = values;
-      
       const userProfileToSave = {
         ...profileData,
-        email: userCredential.user.email!,
+        email: user.email!,
         avatarUrl: finalAvatarUrl || undefined,
       };
 
-      await saveUserProfile(userCredential.user.uid, userProfileToSave);
+      await saveUserProfile(user.uid, userProfileToSave);
 
-      await sendInitialWelcomeMessage(userCredential.user.uid, {
+      await sendInitialWelcomeMessage(user.uid, {
         name: userProfileToSave.name,
         username: userProfileToSave.username,
         avatarUrl: userProfileToSave.avatarUrl,
       });
 
       router.push('/');
-    } catch (error: any) {
+    } catch (profileError: any) {
+      // This is the cleanup step. If profile setup fails, delete the auth user.
+      try {
+        await fbAuth.deleteUser(userCredential.user);
+      } catch (deleteError: any) {
+        console.error("Critical: Failed to clean up user after profile creation error.", deleteError);
+      }
       toast({
         variant: 'destructive',
         title: 'Sign Up Failed',
-        description: error.message,
+        description: `An error occurred while setting up your profile. Please try again.`,
       });
     } finally {
       setIsLoading(false);
