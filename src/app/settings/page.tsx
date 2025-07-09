@@ -333,16 +333,9 @@ export default function SettingsPage() {
 
     const handleRegisterNewPasskey = async () => {
         if (!user) return;
-        const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-        if (!relyingPartyId) {
-            toast({ variant: 'destructive', title: 'Configuration Error', description: 'Firebase Auth Domain not set for Passkeys.' });
-            return;
-        }
-    
         setIsPasskeyLoading(true);
         try {
-            const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
-            await fbAuth.linkWithPopup(user, provider);
+            await fbAuth.linkWithPasskey(user);
             // Refresh passkeys from user object
             const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
             setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));

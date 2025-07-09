@@ -156,19 +156,9 @@ export default function LoginPage() {
       toast({ variant: 'destructive', title: 'Firebase not configured.' });
       return;
     }
-    const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-    if (!relyingPartyId) {
-      toast({
-        variant: 'destructive',
-        title: 'Configuration Error',
-        description: 'The Firebase Auth domain is not configured for Passkey sign-in.',
-      });
-      return;
-    }
     setIsBiometricLoading(true);
     try {
-      const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
-      await fbAuth.signInWithPopup(auth, provider);
+      await fbAuth.signInWithPasskey(auth);
       router.push('/');
     } catch (error: any) {
       toast({

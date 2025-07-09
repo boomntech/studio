@@ -335,11 +335,7 @@ export default function SignupPage() {
           description: 'Please follow the prompts from your browser or device.',
         });
         try {
-          const relyingPartyId = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
-          if (!relyingPartyId) throw new Error("Firebase Auth domain is not configured for Passkey registration.");
-          
-          const provider = new fbAuth.PasskeyAuthProvider(relyingPartyId);
-          await fbAuth.linkWithPopup(userCredential.user, provider);
+          await fbAuth.linkWithPasskey(userCredential.user);
           
           toast({
             title: 'Passkey Registered!',
