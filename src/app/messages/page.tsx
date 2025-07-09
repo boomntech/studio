@@ -1,13 +1,13 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Loader2, MessageSquareText } from 'lucide-react';
+import { Search, Send, Loader2, MessageSquareText, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getConversations,
@@ -98,6 +98,7 @@ const MessageBubble = ({ message, isOwnMessage }: { message: Message; isOwnMessa
 // The main page component
 export default function MessagesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -157,6 +158,11 @@ export default function MessagesPage() {
     }
   };
 
+  const handleStartVideoCall = () => {
+    if (!activeConversationId) return;
+    router.push(`/network/call/${activeConversationId}`);
+  };
+
   const activeConversation = conversations.find(c => c.id === activeConversationId);
   const otherParticipant = activeConversation && user
     ? activeConversation.participantInfo[activeConversation.participants.find(p => p !== user.uid)!]
@@ -204,10 +210,14 @@ export default function MessagesPage() {
                 <AvatarImage src={otherParticipant.avatarUrl} />
                 <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
               </Avatar>
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold">{otherParticipant.name}</p>
                 <p className="text-sm text-muted-foreground">@{otherParticipant.username}</p>
               </div>
+              <Button size="icon" variant="outline" onClick={handleStartVideoCall}>
+                <Video className="h-5 w-5" />
+                <span className="sr-only">Start video call</span>
+              </Button>
             </div>
 
             <ScrollArea className="flex-1 p-6" viewportRef={scrollAreaRef}>
