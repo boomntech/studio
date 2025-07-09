@@ -23,6 +23,7 @@ export interface UserProfile {
   name: string;
   username: string;
   email: string;
+  role?: 'user' | 'moderator';
   avatarUrl?: string;
   bio?: string;
   dob?: Date;
@@ -51,7 +52,7 @@ export interface UserProfile {
  * @param uid The user's unique ID from Firebase Auth.
  * @param profileData The user profile data to save.
  */
-export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt' | 'savedPosts'>) => {
+export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt' | 'savedPosts' | 'role'>) => {
   if (!firestore) throw new Error("Firestore not initialized");
   const userDocRef = doc(firestore, 'users', uid);
   const docSnap = await getDoc(userDocRef);
@@ -68,6 +69,7 @@ export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile
   } else {
     await setDoc(userDocRef, {
       ...dataToSave,
+      role: 'user',
       createdAt: serverTimestamp(),
       savedPosts: [],
     });

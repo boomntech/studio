@@ -12,6 +12,7 @@ import * as fbAuth from 'firebase/auth';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
+import { sendInitialWelcomeMessage } from '@/services/messageService';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -321,10 +322,19 @@ export default function SignupPage() {
       await fbAuth.updateProfile(userCredential.user, { displayName: values.name, photoURL: finalAvatarUrl });
       
       const { password, confirmPassword, enableTwoFactor, ...profileData } = values;
-      await saveUserProfile(userCredential.user.uid, {
+      
+      const userProfileToSave = {
         ...profileData,
         email: userCredential.user.email!,
         avatarUrl: finalAvatarUrl || undefined,
+      };
+
+      await saveUserProfile(userCredential.user.uid, userProfileToSave);
+
+      await sendInitialWelcomeMessage(userCredential.user.uid, {
+        name: userProfileToSave.name,
+        username: userProfileToSave.username,
+        avatarUrl: userProfileToSave.avatarUrl,
       });
 
       router.push('/');
@@ -370,7 +380,7 @@ export default function SignupPage() {
             username = `user${user.uid.substring(0, 8)}`;
         }
 
-        await saveUserProfile(user.uid, {
+        const profileToSave = {
             name: user.displayName || 'New User',
             username: username,
             email: user.email!,
@@ -379,6 +389,13 @@ export default function SignupPage() {
             occupations: [],
             goals: [],
             contentPreferences: [],
+        };
+        await saveUserProfile(user.uid, profileToSave);
+        
+        await sendInitialWelcomeMessage(user.uid, {
+            name: profileToSave.name,
+            username: profileToSave.username,
+            avatarUrl: profileToSave.avatarUrl,
         });
 
         toast({
@@ -519,21 +536,6 @@ export default function SignupPage() {
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="enableTwoFactor"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Enable Two-Factor Authentication</FormLabel>
-                        <FormDescription>Secure your account with an extra layer of protection.</FormDescription>
-                      </div>
                     </FormItem>
                   )}
                 />
@@ -800,9 +802,8 @@ export default function SignupPage() {
               variant="outline"
               type="button"
               disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
-              onClick={handleSendVerificationSms}
             >
-              {isPhoneLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Phone className="mr-2 h-4 w-4" />}
+              <Phone className="mr-2 h-4 w-4" />
               Phone
             </Button>
         </div>
