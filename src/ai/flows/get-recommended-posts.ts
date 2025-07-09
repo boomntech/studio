@@ -123,7 +123,13 @@ const getRecommendedPostsFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
+    if (!output) {
+      // This can happen if the model fails to generate a response that matches the schema.
+      console.error('Failed to get recommended posts from AI. The model response was invalid.');
+      // Return an empty list to avoid crashing the client.
+      return { recommendedPosts: [] };
+    }
     // The Zod transform handles the timestamp conversion now.
-    return output!;
+    return output;
   }
 );

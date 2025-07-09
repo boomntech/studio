@@ -18,7 +18,7 @@ if (!getApps().length) {
             const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
             initializeApp({ credential: cert(serviceAccount) });
         } catch (e) {
-            console.error('Firebase Admin SDK initialization error in create-payment-intent', e);
+            console.error('Firebase Admin SDK initialization error in create-payment-intent: Failed to parse service account key.', e);
         }
     }
 }
