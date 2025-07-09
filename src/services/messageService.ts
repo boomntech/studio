@@ -11,8 +11,11 @@ import {
   where,
   orderBy,
   onSnapshot,
+  setDoc,
+  limit,
+  getDocs,
 } from 'firebase/firestore';
-import type { UserProfile } from './userService';
+import { getMultipleUserProfiles, type UserProfile } from './userService';
 
 // --- INTERFACES ---
 export interface ConversationParticipant {
@@ -23,6 +26,8 @@ export interface ConversationParticipant {
 
 export interface Conversation {
   id: string;
+  name?: string; // For group chats
+  type: 'direct' | 'group';
   participants: string[];
   participantInfo: {
     [key: string]: ConversationParticipant;
@@ -33,6 +38,8 @@ export interface Conversation {
     timestamp: any;
   };
   updatedAt: any;
+  createdBy?: string; // UID of the group creator
+  admins?: string[]; // UIDs of group admins
 }
 
 export interface Message {
@@ -85,6 +92,7 @@ export const sendInitialWelcomeMessage = async (newUserId: string, newUserProfil
   const batch = writeBatch(firestore);
 
   batch.set(conversationRef, {
+    type: 'direct',
     participants: participantIds,
     participantInfo: {
       [BOOMN_BOT_UID]: {
@@ -210,4 +218,58 @@ export const sendMessage = async (conversationId: string, senderId: string, text
   });
 
   await batch.commit();
+};
+
+
+/**
+ * Creates a new group conversation.
+ * @param creatorId The user ID of the person creating the group.
+ * @param participantIds An array of user IDs to include in the group.
+ * @param groupName The name of the new group.
+ * @returns The ID of the newly created conversation.
+ */
+export const createGroupConversation = async (creatorId: string, participantIds: string[], groupName: string) => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    if (participantIds.length === 0) throw new Error("A group must have at least one other participant.");
+    if (!groupName.trim()) throw new Error("Group must have a name.");
+
+    const allParticipantIds = Array.from(new Set([creatorId, ...participantIds]));
+    if (allParticipantIds.length < 2) throw new Error("A group chat needs at least two people.");
+
+    const profiles = await getMultipleUserProfiles(allParticipantIds);
+
+    const participantInfo: Record<string, ConversationParticipant> = {};
+    allParticipantIds.forEach(id => {
+        const profile = profiles[id];
+        if (profile) {
+            participantInfo[id] = {
+                name: profile.name,
+                username: profile.username,
+                avatarUrl: profile.avatarUrl || 'https://placehold.co/40x40.png',
+            };
+        }
+    });
+
+    const conversationsRef = collection(firestore, 'conversations');
+    const newConversationRef = doc(conversationsRef); // Firestore generates a unique ID
+
+    const now = serverTimestamp();
+    const creatorName = profiles[creatorId]?.name || 'a user';
+
+    await setDoc(newConversationRef, {
+        name: groupName,
+        type: 'group',
+        participants: allParticipantIds,
+        participantInfo,
+        lastMessage: {
+            text: `Group created by ${creatorName}.`,
+            senderId: BOOMN_BOT_UID, // System message
+            timestamp: now,
+        },
+        updatedAt: now,
+        createdBy: creatorId,
+        admins: [creatorId], // Creator is the first admin
+    });
+
+    return newConversationRef.id;
 };

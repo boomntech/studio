@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,17 +8,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Loader2, MessageSquareText, Video } from 'lucide-react';
+import { Search, Send, Loader2, MessageSquareText, Video, Users, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getConversations,
   getMessages,
   sendMessage,
+  createGroupConversation,
   type Conversation,
   type Message,
 } from '@/services/messageService';
+import { getUsers, type UserProfile } from '@/services/userService';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+
+const createGroupSchema = z.object({
+  groupName: z.string().min(3, 'Group name must be at least 3 characters.'),
+  participantIds: z.array(z.string()).min(1, 'You must select at least one other member.'),
+});
 
 // Component to render a conversation in the list
 const ConversationItem = ({
@@ -31,12 +46,13 @@ const ConversationItem = ({
   onClick: () => void;
   isActive: boolean;
 }) => {
-  const otherParticipantId = conversation.participants.find(p => p !== currentUserId);
-  if (!otherParticipantId) return null;
+  const isGroup = conversation.type === 'group';
+  const otherParticipantId = !isGroup ? conversation.participants.find(p => p !== currentUserId) : null;
+  const participant = otherParticipantId ? conversation.participantInfo[otherParticipantId] : null;
 
-  const otherParticipant = conversation.participantInfo[otherParticipantId];
-  if (!otherParticipant) return null;
-
+  const displayName = isGroup ? conversation.name : participant?.name;
+  const avatarUrl = isGroup ? undefined : participant?.avatarUrl;
+  const fallback = isGroup ? <Users className="h-6 w-6" /> : displayName?.charAt(0);
   const lastMessageTimestamp =
     conversation.lastMessage?.timestamp instanceof Timestamp
       ? formatDistanceToNow(conversation.lastMessage.timestamp.toDate(), { addSuffix: true })
@@ -51,11 +67,11 @@ const ConversationItem = ({
       )}
     >
       <Avatar>
-        <AvatarImage src={otherParticipant.avatarUrl} />
-        <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
+        <AvatarImage src={avatarUrl} />
+        <AvatarFallback className={cn(isGroup && 'bg-muted')}>{fallback}</AvatarFallback>
       </Avatar>
       <div className="flex-1 overflow-hidden">
-        <p className="font-semibold truncate">{otherParticipant.name}</p>
+        <p className="font-semibold truncate">{displayName}</p>
         <p className="text-sm text-muted-foreground truncate">
           {conversation.lastMessage.senderId === currentUserId ? 'You: ' : ''}
           {conversation.lastMessage.text}
@@ -95,6 +111,110 @@ const MessageBubble = ({ message, isOwnMessage }: { message: Message; isOwnMessa
   );
 };
 
+
+// Dialog for creating a new group
+function CreateGroupDialog({ open, onOpenChange, currentUserId }: { open: boolean, onOpenChange: (open: boolean) => void, currentUserId: string }) {
+  const { toast } = useToast();
+  const [isCreating, setIsCreating] = useState(false);
+  const [potentialMembers, setPotentialMembers] = useState<UserProfile[]>([]);
+  const { handleSubmit, control, reset } = useForm<z.infer<typeof createGroupSchema>>({
+    resolver: zodResolver(createGroupSchema),
+    defaultValues: { groupName: '', participantIds: [] },
+  });
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const users = await getUsers(20);
+      setPotentialMembers(users.filter(u => u.uid !== currentUserId));
+    }
+    fetchUsers();
+  }, [currentUserId]);
+
+  const onSubmit = async (data: z.infer<typeof createGroupSchema>) => {
+    setIsCreating(true);
+    try {
+      await createGroupConversation(currentUserId, data.participantIds, data.groupName);
+      toast({ title: "Group Created!", description: `The group "${data.groupName}" has been successfully created.` });
+      reset();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to create group', description: error.message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a New Group Chat</DialogTitle>
+          <DialogDescription>Name your group and select members to start a conversation.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Controller
+            name="groupName"
+            control={control}
+            render={({ field, fieldState }) => (
+              <div className="space-y-2">
+                <Label htmlFor="groupName">Group Name</Label>
+                <Input id="groupName" {...field} />
+                {fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}
+              </div>
+            )}
+          />
+          <div className="space-y-2">
+            <Label>Select Members</Label>
+            <Controller
+              name="participantIds"
+              control={control}
+              render={({ field, fieldState }) => (
+                <>
+                <ScrollArea className="h-48 rounded-md border p-2">
+                  <div className="space-y-2">
+                    {potentialMembers.map(member => (
+                      <div key={member.uid} className="flex items-center gap-3 p-2 rounded-md hover:bg-secondary">
+                         <Checkbox
+                          id={member.uid}
+                          onCheckedChange={(checked) => {
+                            const currentVal = field.value || [];
+                            if (checked) {
+                              field.onChange([...currentVal, member.uid]);
+                            } else {
+                              field.onChange(currentVal.filter(id => id !== member.uid));
+                            }
+                          }}
+                          checked={field.value?.includes(member.uid)}
+                        />
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={member.avatarUrl} />
+                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <label htmlFor={member.uid} className="flex-1 cursor-pointer">
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">@{member.username}</p>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                {fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}
+                </>
+              )}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isCreating}>
+              {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create Group
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 // The main page component
 export default function MessagesPage() {
   const { user } = useAuth();
@@ -105,6 +225,7 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isCreateGroupOpen, setCreateGroupOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations
@@ -113,7 +234,6 @@ export default function MessagesPage() {
     setIsLoading(true);
     const unsubscribe = getConversations(user.uid, (fetchedConversations) => {
       setConversations(fetchedConversations);
-      // If there's no active conversation, select the first one
       if (!activeConversationId && fetchedConversations.length > 0) {
         setActiveConversationId(fetchedConversations[0].id);
       }
@@ -164,19 +284,22 @@ export default function MessagesPage() {
   };
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);
-  const otherParticipant = activeConversation && user
+  const isGroupChat = activeConversation?.type === 'group';
+  const otherParticipant = !isGroupChat && activeConversation && user
     ? activeConversation.participantInfo[activeConversation.participants.find(p => p !== user.uid)!]
     : null;
 
   return (
     <div className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex border bg-card rounded-lg overflow-hidden">
+      {user && <CreateGroupDialog open={isCreateGroupOpen} onOpenChange={setCreateGroupOpen} currentUserId={user.uid} />}
       {/* Sidebar with conversations */}
       <div className="w-full md:w-1/3 lg:w-1/4 border-r flex flex-col">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search messages" className="pl-9" disabled />
-          </div>
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="text-xl font-bold">Chats</h2>
+          <Button variant="ghost" size="icon" onClick={() => setCreateGroupOpen(true)}>
+            <Plus className="h-5 w-5" />
+            <span className="sr-only">New Group</span>
+          </Button>
         </div>
         <ScrollArea className="flex-1">
           {isLoading ? (
@@ -196,6 +319,7 @@ export default function MessagesPage() {
           ) : (
             <div className="text-center text-muted-foreground p-8">
               <p>No conversations yet.</p>
+              <Button variant="link" onClick={() => setCreateGroupOpen(true)}>Start a new group chat</Button>
             </div>
           )}
         </ScrollArea>
@@ -203,16 +327,19 @@ export default function MessagesPage() {
 
       {/* Main chat window */}
       <div className="hidden md:flex flex-1 flex-col">
-        {activeConversation && otherParticipant ? (
+        {activeConversation ? (
           <>
             <div className="p-4 border-b flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={otherParticipant.avatarUrl} />
-                <AvatarFallback>{otherParticipant.name.charAt(0)}</AvatarFallback>
+               <Avatar>
+                <AvatarImage src={!isGroupChat ? otherParticipant?.avatarUrl : undefined} />
+                <AvatarFallback className={cn(isGroupChat && 'bg-muted')}>
+                    {isGroupChat ? <Users className="h-6 w-6"/> : otherParticipant?.name.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="font-semibold">{otherParticipant.name}</p>
-                <p className="text-sm text-muted-foreground">@{otherParticipant.username}</p>
+                <p className="font-semibold">{isGroupChat ? activeConversation.name : otherParticipant?.name}</p>
+                 { !isGroupChat && otherParticipant && <p className="text-sm text-muted-foreground">@{otherParticipant.username}</p>}
+                 { isGroupChat && <p className="text-sm text-muted-foreground">{activeConversation.participants.length} members</p>}
               </div>
               <Button size="icon" variant="outline" onClick={handleStartVideoCall}>
                 <Video className="h-5 w-5" />

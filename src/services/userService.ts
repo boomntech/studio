@@ -16,6 +16,7 @@ import {
   updateDoc,
   arrayUnion,
   arrayRemove,
+  limit,
 } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -186,3 +187,55 @@ export const toggleSavePost = async (userId: string, postId: string) => {
         }
     }
 };
+
+/**
+ * Retrieves a list of users, useful for populating suggestion lists.
+ * @param count The maximum number of users to retrieve.
+ * @returns A promise that resolves to an array of user profiles.
+ */
+export const getUsers = async (count: number = 20): Promise<UserProfile[]> => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    const usersCollection = collection(firestore, 'users');
+    const q = query(usersCollection, limit(count));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        if (data.dob && data.dob instanceof Timestamp) {
+            data.dob = data.dob.toDate();
+        }
+        return data as UserProfile;
+    });
+}
+
+/**
+ * Retrieves multiple user profiles from a list of UIDs.
+ * @param uids An array of user IDs.
+ * @returns A promise that resolves to a map of UID to UserProfile.
+ */
+export const getMultipleUserProfiles = async (uids: string[]): Promise<Record<string, UserProfile>> => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    if (uids.length === 0) return {};
+  
+    // Firestore 'in' query is limited to 30 elements. Chunk if necessary.
+    const chunks: string[][] = [];
+    for (let i = 0; i < uids.length; i += 30) {
+        chunks.push(uids.slice(i, i + 30));
+    }
+
+    const profileMap: Record<string, UserProfile> = {};
+    
+    for (const chunk of chunks) {
+        const q = query(collection(firestore, 'users'), where('uid', 'in', chunk));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(doc => {
+            const data = doc.data() as UserProfile;
+            if (data.dob && data.dob instanceof Timestamp) {
+                data.dob = data.dob.toDate();
+            }
+            profileMap[doc.id] = data;
+        });
+    }
+
+    return profileMap;
+}
