@@ -335,7 +335,8 @@ export default function SignupPage() {
           description: 'Please follow the prompts from your browser or device.',
         });
         try {
-          await fbAuth.linkWithPasskey(userCredential.user);
+          const provider = new fbAuth.PasskeyAuthProvider();
+          await fbAuth.linkWithPopup(userCredential.user, provider);
           
           toast({
             title: 'Passkey Registered!',

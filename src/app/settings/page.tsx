@@ -335,8 +335,10 @@ export default function SettingsPage() {
         if (!user) return;
         setIsPasskeyLoading(true);
         try {
-            await fbAuth.linkWithPasskey(user);
+            const provider = new fbAuth.PasskeyAuthProvider();
+            await fbAuth.linkWithPopup(user, provider);
             // Refresh passkeys from user object
+            await user.reload();
             const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
             setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
             toast({ title: 'Passkey Registered Successfully!' });
@@ -353,6 +355,7 @@ export default function SettingsPage() {
         try {
             await fbAuth.multiFactor(user).unenroll(factor);
             // Refresh passkeys from user object
+            await user.reload();
             const updatedFactors = fbAuth.multiFactor(user).enrolledFactors;
             setPasskeys(updatedFactors.filter(f => f.factorId === 'passkey'));
             toast({ title: 'Passkey Removed' });

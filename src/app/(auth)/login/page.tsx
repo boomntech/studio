@@ -158,7 +158,8 @@ export default function LoginPage() {
     }
     setIsBiometricLoading(true);
     try {
-      await fbAuth.signInWithPasskey(auth);
+      const provider = new fbAuth.PasskeyAuthProvider();
+      await fbAuth.signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
       toast({
