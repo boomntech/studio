@@ -45,7 +45,6 @@ import { OccupationInput } from '@/components/occupation-input';
 import { InterestInput } from '@/components/interest-input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
-import { LocationAutocomplete } from '@/components/location-autocomplete';
 import { Textarea } from '@/components/ui/textarea';
 import { AvatarUpload } from '@/components/avatar-upload';
 import { MontanaTip } from '@/components/montana-tip';
@@ -582,16 +581,6 @@ export default function SignupPage() {
                 <>
                   <MontanaTip tip="Where in the world are you? This helps connect you with people and events in your area." />
                   <div className="space-y-4">
-                      <FormItem>
-                          <FormLabel>Search for your Location</FormLabel>
-                          <FormControl>
-                              <LocationAutocomplete />
-                          </FormControl>
-                          <FormDescription>
-                              Select your city from the list to autofill the fields below.
-                          </FormDescription>
-                      </FormItem>
-                      
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                               control={form.control}
