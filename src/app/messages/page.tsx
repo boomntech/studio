@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Loader2, MessageSquareText, Video, Users, Plus } from 'lucide-react';
+import { Send, Loader2, MessageSquareText, Video, Users, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getConversations,
@@ -28,6 +28,7 @@ import { z } from 'zod';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useVideoCall } from '@/context/VideoCallContext';
 
 const createGroupSchema = z.object({
   groupName: z.string().min(3, 'Group name must be at least 3 characters.'),
@@ -218,7 +219,7 @@ function CreateGroupDialog({ open, onOpenChange, currentUserId }: { open: boolea
 // The main page component
 export default function MessagesPage() {
   const { user } = useAuth();
-  const router = useRouter();
+  const { startCall } = useVideoCall();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -280,7 +281,7 @@ export default function MessagesPage() {
 
   const handleStartVideoCall = () => {
     if (!activeConversationId) return;
-    router.push(`/network/call/${activeConversationId}`);
+    startCall(activeConversationId);
   };
 
   const activeConversation = conversations.find(c => c.id === activeConversationId);

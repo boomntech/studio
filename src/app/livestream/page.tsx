@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Radio, Users, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useVideoCall } from '@/context/VideoCallContext';
 
 const liveStreams = [
   {
@@ -40,12 +41,16 @@ const liveStreams = [
 ];
 
 export default function LivestreamPage() {
-  const router = useRouter();
+  const { startCall } = useVideoCall();
 
   const handleGoLive = () => {
     // Generate a unique channel ID for the new stream
     const channelId = `live_${Math.random().toString(36).substring(2, 9)}`;
-    router.push(`/livestream/${channelId}?role=host`);
+    startCall(channelId, 'host', `/livestream/${channelId}?role=host`);
+  };
+
+  const handleJoinStream = (streamId: string) => {
+    startCall(streamId, 'audience', `/livestream/${streamId}`);
   };
 
   return (
@@ -65,7 +70,7 @@ export default function LivestreamPage() {
         {liveStreams.map((stream) => (
           <Card key={stream.id} className="flex flex-col group">
             <CardHeader className="p-0 relative">
-              <Link href={`/livestream/${stream.id}`} className="block aspect-video relative">
+              <div onClick={() => handleJoinStream(stream.id)} className="block aspect-video relative cursor-pointer">
                 <Image
                   src={stream.thumbnailUrl}
                   alt={stream.title}
@@ -82,7 +87,7 @@ export default function LivestreamPage() {
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Radio className="h-12 w-12 text-white" />
                 </div>
-              </Link>
+              </div>
             </CardHeader>
             <CardContent className="p-4 flex-grow">
               <div className="flex gap-2 flex-wrap mb-2">
