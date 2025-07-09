@@ -354,10 +354,12 @@ export default function SignupPage() {
       router.push('/');
     } catch (profileError: any) {
       // This is the cleanup step. If profile setup fails, delete the auth user.
-      try {
-        await fbAuth.deleteUser(userCredential.user);
-      } catch (deleteError: any) {
-        console.error("Critical: Failed to clean up user after profile creation error.", deleteError);
+      if (userCredential?.user) {
+          try {
+            await fbAuth.deleteUser(userCredential.user);
+          } catch (deleteError: any) {
+            console.error("Critical: Failed to clean up user after profile creation error.", deleteError);
+          }
       }
       toast({
         variant: 'destructive',
