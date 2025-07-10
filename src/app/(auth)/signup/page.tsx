@@ -35,14 +35,12 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Phone, Check, X, CalendarIcon } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OccupationInput } from '@/components/occupation-input';
-import { InterestInput } from '@/components/interest-input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -101,12 +99,7 @@ const formSchema = z.object({
   businessName: z.string().optional(),
   businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 
-  // Step 5
-  interests: z.array(z.string()).min(1, { message: "Please select at least one interest." }).max(5, { message: "You can select up to 5 interests." }),
-  goals: z.array(z.string()).max(3, { message: "You can select up to 3 goals." }).optional(),
-  contentPreferences: z.array(z.string()).min(1, {message: 'Please select at least one content type.'}).optional(),
-
-  // Step 6
+  // Step 5 (was 6)
   bio: z.string().max(160, { message: "Bio cannot exceed 160 characters." }).optional(),
 
 }).refine(data => data.password === data.confirmPassword, {
@@ -134,33 +127,14 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
-const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Interests & Goals", "Set up your profile"];
+const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Set up your profile"];
 const stepDescriptions = [
     "Get started with the basics.", 
     "This helps us personalize your experience.", 
     "This helps connect you with people and events nearby.",
     "Tell us about your professional background.",
-    "Fuel algorithmic discovery and networking.",
     "This is optional. You can always do this later."
 ];
-
-const goals = [
-  { id: 'grow_audience', label: 'Grow my audience' },
-  { id: 'find_clients', label: 'Find new clients' },
-  { id: 'learn_skills', label: 'Learn new skills' },
-  { id: 'network_peers', label: 'Network with peers' },
-  { id: 'hire_talent', label: 'Hire talent' },
-  { id: 'discover_content', label: 'Discover content' },
-] as const;
-
-const contentPreferences = [
-    { id: 'tips_tutorials', label: 'Tips & Tutorials' },
-    { id: 'success_stories', label: 'Success Stories' },
-    { id: 'templates_tools', label: 'Templates & Tools' },
-    { id: 'news_updates', label: 'News & Updates' },
-    { id: 'case_studies', label: 'Case Studies' },
-    { id: 'live_discussions', label: 'Live Discussions' },
-] as const;
 
 
 export default function SignupPage() {
@@ -198,9 +172,6 @@ export default function SignupPage() {
       city: '',
       state: '',
       occupations: [],
-      interests: [],
-      goals: [],
-      contentPreferences: [],
       enableTwoFactor: false,
       industry: '',
       isRunningBusiness: false,
@@ -278,16 +249,13 @@ export default function SignupPage() {
       fieldsToValidate = ['occupations', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
     }
     if (step === 5) {
-      fieldsToValidate = ['interests', 'goals', 'contentPreferences'];
-    }
-     if (step === 6) {
       fieldsToValidate = ['bio'];
     }
 
     const isValid = await form.trigger(fieldsToValidate);
     if (!isValid) return;
 
-    if (step < 6) {
+    if (step < 5) {
       setStep(s => s + 1);
     } else {
       await form.handleSubmit(onSubmit)();
@@ -342,6 +310,10 @@ export default function SignupPage() {
         ...profileData,
         email: user.email!,
         avatarUrl: finalAvatarUrl || undefined,
+        // Ensure these arrays exist even if the step was removed
+        interests: [],
+        goals: [],
+        contentPreferences: [],
       };
 
       await saveUserProfile(user.uid, userProfileToSave);
@@ -457,8 +429,8 @@ export default function SignupPage() {
         <div className="flex flex-col items-center text-center space-y-4">
           <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
           <div className="w-full space-y-2">
-            <Progress value={(step / 6) * 100} className="w-full" />
-            <p className="text-sm font-medium text-muted-foreground">Step {step} of 6</p>
+            <Progress value={(step / 5) * 100} className="w-full" />
+            <p className="text-sm font-medium text-muted-foreground">Step {step} of 5</p>
             <CardTitle>{stepTitles[step - 1]}</CardTitle>
             <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
           </div>
@@ -615,9 +587,9 @@ export default function SignupPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
                 </div>
               </>
             )}
@@ -676,7 +648,7 @@ export default function SignupPage() {
                 <MontanaTip tip="What do you do? Adding your professional details helps you network with the right people." />
                 <div className="space-y-4">
                   <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} value={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
+                  <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
                   <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
                   {isRunningBusiness && (
                     <div className="space-y-4">
@@ -689,95 +661,6 @@ export default function SignupPage() {
             )}
 
             {step === 5 && (
-              <>
-                <MontanaTip tip="What are you into? Your interests fuel the 'For You' feed and help you find your community." />
-                <div className="space-y-6">
-                  <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
-                  
-                  <FormField
-                    control={form.control}
-                    name="goals"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="mb-4">
-                          <FormLabel className="text-base">What are your goals?</FormLabel>
-                          <FormDescription>Select up to 3 that are most important to you.</FormDescription>
-                        </div>
-                        <FormControl>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                            {goals.map((item) => (
-                              <div key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                <Checkbox
-                                  checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    const currentValue = field.value ?? [];
-                                    if (checked) {
-                                      if (currentValue.length < 3) {
-                                        field.onChange([...currentValue, item.id]);
-                                      } else {
-                                        toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
-                                      }
-                                    } else {
-                                      field.onChange(currentValue.filter((value) => value !== item.id));
-                                    }
-                                  }}
-                                  id={`goal-${item.id}`}
-                                />
-                                <Label htmlFor={`goal-${item.id}`} className="font-normal text-sm">
-                                  {item.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="contentPreferences"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="mb-4">
-                          <FormLabel className="text-base">What kind of content are you interested in?</FormLabel>
-                          <FormDescription>This helps us tailor your feed.</FormDescription>
-                        </div>
-                        <FormControl>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                            {contentPreferences.map((item) => (
-                              <div key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                <Checkbox
-                                  checked={field.value?.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    const currentValue = field.value ?? [];
-                                    return checked
-                                      ? field.onChange([...currentValue, item.id])
-                                      : field.onChange(
-                                          currentValue.filter(
-                                            (value) => value !== item.id
-                                          )
-                                        );
-                                  }}
-                                  id={`content-${item.id}`}
-                                />
-                                <Label htmlFor={`content-${item.id}`} className="font-normal text-sm">
-                                  {item.label}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </>
-            )}
-
-            {step === 6 && (
                 <>
                   <MontanaTip tip="Almost there! A great profile picture and bio make the best first impression." />
                   <div className="space-y-6">
@@ -810,7 +693,7 @@ export default function SignupPage() {
             <div className="flex gap-2 pt-4">
               {step > 1 && <Button variant="outline" type="button" className="w-full" onClick={() => setStep(s => s - 1)}>Back</Button>}
               
-              {step === 6 ? (
+              {step === 5 ? (
                 <Button 
                     type="button" 
                     className="w-full"
@@ -831,7 +714,7 @@ export default function SignupPage() {
                 </Button>
               )}
             </div>
-             {step === 6 && (
+             {step === 5 && (
                 <Button 
                     variant="link" 
                     type="button" 
@@ -887,5 +770,3 @@ export default function SignupPage() {
     </Card>
   );
 }
-
-    
