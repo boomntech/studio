@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -31,9 +31,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone, Check, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
-import { Label } from '@/components/ui/label';
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -143,7 +142,7 @@ export default function SignupPage() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
 
-    if (usernameStatus !== 'available' && usernameStatus !== 'idle') {
+    if (usernameStatus === 'taken') {
       form.setError('username', { type: 'manual', message: 'Please choose an available username.' });
       setIsLoading(false);
       return;
@@ -205,7 +204,8 @@ export default function SignupPage() {
       if (userCredential?.user) {
           try {
             await fbAuth.deleteUser(userCredential.user);
-          } catch (deleteError: any) {
+          } catch (deleteError: any)
+          {
             console.error("Critical: Failed to clean up user after profile creation error.", deleteError);
           }
       }
@@ -314,23 +314,18 @@ export default function SignupPage() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Input 
-                        placeholder="your_username" 
-                        {...field} 
-                        onChange={(e) => {
-                          field.onChange(e);
-                          debouncedUsernameCheck(e.target.value);
-                        }}
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center">
-                        {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                        {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
-                        {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
-                      </div>
-                    </div>
+                    <Input 
+                      placeholder="your_username" 
+                      {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        debouncedUsernameCheck(e.target.value);
+                      }}
+                    />
                   </FormControl>
                   <FormDescription>
+                    {usernameStatus === 'checking' && 'Checking availability...'}
+                    {usernameStatus === 'available' && <span className="text-green-500">Username is available!</span>}
                     {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
                       <div className="space-x-1">
                         <span>Suggestions:</span>
@@ -433,5 +428,3 @@ export default function SignupPage() {
     </Card>
   );
 }
-
-    
