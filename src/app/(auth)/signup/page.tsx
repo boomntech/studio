@@ -7,10 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from "date-fns"
 import * as fbAuth from 'firebase/auth';
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, storage } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
 import { sendInitialWelcomeMessage } from '@/services/messageService';
 import { Button } from '@/components/ui/button';
@@ -33,20 +31,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Phone, Check, X, CalendarIcon } from 'lucide-react';
+import { Loader2, Mail, Phone, Check, X } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { Label } from '@/components/ui/label';
-import { cn } from "@/lib/utils"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { OccupationInput } from '@/components/occupation-input';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { AvatarUpload } from '@/components/avatar-upload';
-import { MontanaTip } from '@/components/montana-tip';
-
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
@@ -71,7 +58,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const formSchema = z.object({
-  // Step 1
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   username: z.string()
     .min(3, { message: "Username must be at least 3 characters."})
@@ -79,43 +65,12 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   confirmPassword: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  enableTwoFactor: z.boolean().default(false).optional(),
-  
-  // Step 2
-  dob: z.date({ required_error: "A date of birth is required." }),
-  gender: z.string({ required_error: "Please select a gender." }),
-  race: z.string().optional(),
-  sexualOrientation: z.string().optional(),
-
-  // Step 3
-  country: z.string().min(1, { message: "Country is required." }),
-  city: z.string().min(1, { message: 'City is required.' }),
-  state: z.string().min(1, { message: 'State is required.' }),
-
-  // Step 4
-  occupations: z.array(z.string()).max(5, { message: "You can select up to 5 occupations." }).optional(),
-  industry: z.string().optional(),
-  isRunningBusiness: z.boolean().default(false).optional(),
-  businessName: z.string().optional(),
-  businessWebsite: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
-
-  // Step 5 (was 6)
-  bio: z.string().max(160, { message: "Bio cannot exceed 160 characters." }).optional(),
-
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
-}).refine(data => {
-    if (data.isRunningBusiness && (!data.businessName || data.businessName.length === 0)) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Business name is required if you are running a business.",
-    path: ["businessName"],
 });
 
-// Real function to check username availability against Firestore
+
 const checkUsernameAvailability = async (username: string): Promise<{ available: boolean; suggestions: string[] }> => {
     const isTaken = await isUsernameTaken(username);
     if (isTaken) {
@@ -127,32 +82,13 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
-const stepTitles = ["Create your account", "Tell us about yourself", "Where are you from?", "Customize your profile", "Set up your profile"];
-const stepDescriptions = [
-    "Get started with the basics.", 
-    "This helps us personalize your experience.", 
-    "This helps connect you with people and events nearby.",
-    "Tell us about your professional background.",
-    "This is optional. You can always do this later."
-];
-
-
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [step, setStep] = useState(1);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isLinkLoading, setIsLinkLoading] = useState(false);
-  const [emailForLink, setEmailForLink] = useState('');
-  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
-  const [phoneStep, setPhoneStep] = useState<'enterPhone' | 'enterCode'>('enterPhone');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<fbAuth.ConfirmationResult | null>(null);
-
+  
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   
@@ -165,24 +101,8 @@ export default function SignupPage() {
       email: '',
       password: '',
       confirmPassword: '',
-      gender: '',
-      race: '',
-      sexualOrientation: '',
-      country: '',
-      city: '',
-      state: '',
-      occupations: [],
-      enableTwoFactor: false,
-      industry: '',
-      isRunningBusiness: false,
-      businessName: '',
-      businessWebsite: '',
-      bio: '',
-      dob: undefined,
     },
   });
-  
-  const isRunningBusiness = form.watch('isRunningBusiness');
 
   const handleUsernameCheck = useCallback(
     async (username: string) => {
@@ -219,52 +139,16 @@ export default function SignupPage() {
     []
   )(handleUsernameCheck);
 
-  useEffect(() => {
-    if (!auth) return;
-    if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new fbAuth.RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => { /* reCAPTCHA solved */ }
-      });
-      (window as any).recaptchaVerifier.render();
-    }
-  }, []);
-
-  const handleNextStep = async () => {
-    let fieldsToValidate: (keyof z.infer<typeof formSchema>)[] = [];
-    if (step === 1) {
-      fieldsToValidate = ['name', 'username', 'email', 'password', 'confirmPassword'];
-      if (usernameStatus !== 'available' && usernameStatus !== 'idle') {
-        form.setError('username', { type: 'manual', message: 'Please choose an available username.' });
-        return;
-      }
-    }
-    if (step === 2) {
-      fieldsToValidate = ['dob', 'gender'];
-    }
-    if (step === 3) {
-      fieldsToValidate = ['country', 'city', 'state'];
-    }
-    if (step === 4) {
-      fieldsToValidate = ['occupations', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
-    }
-    if (step === 5) {
-      fieldsToValidate = ['bio'];
-    }
-
-    const isValid = await form.trigger(fieldsToValidate);
-    if (!isValid) return;
-
-    if (step < 5) {
-      setStep(s => s + 1);
-    } else {
-      await form.handleSubmit(onSubmit)();
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
 
+    if (usernameStatus !== 'available' && usernameStatus !== 'idle') {
+      form.setError('username', { type: 'manual', message: 'Please choose an available username.' });
+      setIsLoading(false);
+      return;
+    }
+    
     if (!auth) {
       toast({
         variant: 'destructive',
@@ -277,7 +161,6 @@ export default function SignupPage() {
 
     let userCredential: fbAuth.UserCredential | null = null;
     try {
-      // Step 1: Create user in Firebase Auth.
       userCredential = await fbAuth.createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -294,24 +177,17 @@ export default function SignupPage() {
     }
 
     try {
-      // Step 2-5: Set up user profile, avatar, etc.
       const user = userCredential.user;
-      let finalAvatarUrl = '';
-      if (avatarFile && storage) {
-        const avatarStorageRef = storageRef(storage, `avatars/${user.uid}`);
-        await uploadBytes(avatarStorageRef, avatarFile);
-        finalAvatarUrl = await getDownloadURL(avatarStorageRef);
-      }
       
-      await fbAuth.updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
+      await fbAuth.updateProfile(user, { displayName: values.name, photoURL: undefined });
       
-      const { password, confirmPassword, enableTwoFactor, ...profileData } = values;
+      const { password, confirmPassword, ...profileData } = values;
       const userProfileToSave = {
         ...profileData,
         email: user.email!,
-        avatarUrl: finalAvatarUrl || undefined,
-        // Ensure these arrays exist even if the step was removed
+        avatarUrl: undefined,
         interests: [],
+        occupations: [],
         goals: [],
         contentPreferences: [],
       };
@@ -326,7 +202,6 @@ export default function SignupPage() {
 
       router.push('/');
     } catch (profileError: any) {
-      // This is the cleanup step. If profile setup fails, delete the auth user.
       if (userCredential?.user) {
           try {
             await fbAuth.deleteUser(userCredential.user);
@@ -411,320 +286,117 @@ export default function SignupPage() {
     }
   };
 
-  const handleSendSignInLink = async () => {
-    // ... (existing implementation)
-  };
-
-  const handleSendVerificationSms = async () => {
-    // ... (existing implementation)
-  };
-
-  const handleVerifyCode = async () => {
-      // ... (existing implementation)
-  };
-
   return (
-    <Card className="w-full max-w-md my-8">
-      <CardHeader>
-        <div className="flex flex-col items-center text-center space-y-4">
-          <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
-          <div className="w-full space-y-2">
-            <Progress value={(step / 5) * 100} className="w-full" />
-            <p className="text-sm font-medium text-muted-foreground">Step {step} of 5</p>
-            <CardTitle>{stepTitles[step - 1]}</CardTitle>
-            <CardDescription>{stepDescriptions[step - 1]}</CardDescription>
-          </div>
-        </div>
+    <Card className="w-full max-w-sm">
+      <CardHeader className="text-center">
+        <BoomnLogo className="w-16 h-16 mx-auto text-primary" />
+        <CardTitle className="mt-4">Create your account</CardTitle>
+        <CardDescription>Get started on Boomn</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            {step === 1 && (
-              <>
-                <MontanaTip tip="Let's get the basics down first. Choose a unique username that represents you!" />
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl><Input placeholder="Your full name" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input 
-                              placeholder="your_username" 
-                              {...field} 
-                              onChange={(e) => {
-                                field.onChange(e);
-                                debouncedUsernameCheck(e.target.value);
-                              }}
-                            />
-                            <div className="absolute inset-y-0 right-3 flex items-center">
-                              {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                              {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
-                              {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormDescription>
-                          {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
-                            <div className="space-x-1">
-                              <span>Suggestions:</span>
-                              {usernameSuggestions.map((s, i) => (
-                                <Button
-                                  key={s}
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="p-0 h-auto"
-                                  onClick={() => {
-                                    form.setValue('username', s, { shouldValidate: true });
-                                    handleUsernameCheck(s);
-                                  }}
-                                >
-                                  {s}{i < usernameSuggestions.length -1 && ','}
-                                </Button>
-                              ))}
-                            </div>
-                          )}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <MontanaTip tip="Tell me a bit about you. This info helps me personalize your experience on Boomn." />
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="dob"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Date of birth</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full justify-start text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="h-4 w-4 opacity-50" />
-                                </div>
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="gender" render={({ field }) => ( <FormItem> <FormLabel>Gender</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your gender" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="male">Male</SelectItem> <SelectItem value="female">Female</SelectItem> <SelectItem value="non-binary">Non-binary</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="race" render={({ field }) => ( <FormItem> <FormLabel>Race (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your race" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="american-indian">American Indian or Alaska Native</SelectItem> <SelectItem value="asian">Asian</SelectItem> <SelectItem value="black">Black or African American</SelectItem> <SelectItem value="hispanic">Hispanic or Latino</SelectItem> <SelectItem value="pacific-islander">Native Hawaiian or Other Pacific Islander</SelectItem> <SelectItem value="white">White</SelectItem> <SelectItem value="two-or-more">Two or More Races</SelectItem> <SelectItem value="other">Other</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormDescription>This helps us recommend diverse communities and content.</FormDescription><FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="sexualOrientation" render={({ field }) => ( <FormItem> <FormLabel>Sexual Orientation (Optional)</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your sexual orientation" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="straight">Straight</SelectItem> <SelectItem value="lgbtq">LGBTQ+</SelectItem> <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                </div>
-              </>
-            )}
-
-            {step === 3 && (
-                <>
-                  <MontanaTip tip="Where in the world are you? This helps connect you with people and events in your area." />
-                  <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <FormField
-                              control={form.control}
-                              name="city"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>City</FormLabel>
-                                      <FormControl>
-                                          <Input placeholder="e.g. San Francisco" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                          <FormField
-                              control={form.control}
-                              name="state"
-                              render={({ field }) => (
-                                  <FormItem>
-                                      <FormLabel>State / Province</FormLabel>
-                                      <FormControl>
-                                          <Input placeholder="e.g. California" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-                      <FormField
-                          control={form.control}
-                          name="country"
-                          render={({ field }) => (
-                              <FormItem>
-                                  <FormLabel>Country</FormLabel>
-                                  <FormControl>
-                                      <Input placeholder="e.g. United States" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                              </FormItem>
-                          )}
-                      />
-                  </div>
-                </>
-            )}
-
-            {step === 4 && (
-              <>
-                <MontanaTip tip="What do you do? Adding your professional details helps you network with the right people." />
-                <div className="space-y-4">
-                  <FormField control={form.control} name="occupations" render={({ field }) => ( <FormItem> <FormLabel>Occupations</FormLabel> <FormControl> <OccupationInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 occupations. Start typing to get AI-powered suggestions. </FormDescription> <FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="industry" render={({ field }) => ( <FormItem> <FormLabel>Industry</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Select your industry" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="technology">Technology</SelectItem> <SelectItem value="marketing">Marketing</SelectItem> <SelectItem value="design">Design</SelectItem> <SelectItem value="e-commerce">E-commerce</SelectItem> <SelectItem value="content-creation">Content Creation</SelectItem> <SelectItem value="other">Other</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )} />
-                  <FormField control={form.control} name="isRunningBusiness" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>Are you currently running a business?</FormLabel> </div> <FormControl> <Switch checked={field.value} onCheckedChange={field.onChange} /> </FormControl> </FormItem> )} />
-                  {isRunningBusiness && (
-                    <div className="space-y-4">
-                       <FormField control={form.control} name="businessName" render={({ field }) => ( <FormItem> <FormLabel>Business Name</FormLabel> <FormControl><Input placeholder="Your Company LLC" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                       <FormField control={form.control} name="businessWebsite" render={({ field }) => ( <FormItem> <FormLabel>Business Website (Optional)</FormLabel> <FormControl><Input placeholder="https://yourcompany.com" {...field} /></FormControl> <FormMessage /> </FormItem> )} />
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {step === 5 && (
-                <>
-                  <MontanaTip tip="Almost there! A great profile picture and bio make the best first impression." />
-                  <div className="space-y-6">
-                      <AvatarUpload onFileChange={setAvatarFile} fallbackText={form.getValues('name')?.charAt(0) || 'U'} />
-                      <FormField
-                          control={form.control}
-                          name="bio"
-                          render={({ field }) => (
-                              <FormItem>
-                              <FormLabel>Your Bio</FormLabel>
-                              <FormControl>
-                                  <Textarea
-                                  placeholder="Tell us a little about yourself..."
-                                  className="resize-none"
-                                  {...field}
-                                  />
-                              </FormControl>
-                               <FormDescription>
-                                  A brief description of who you are. This will appear on your profile.
-                              </FormDescription>
-                              <FormMessage />
-                              </FormItem>
-                          )}
-                      />
-                  </div>
-                </>
-            )}
-
-
-            <div className="flex gap-2 pt-4">
-              {step > 1 && <Button variant="outline" type="button" className="w-full" onClick={() => setStep(s => s - 1)}>Back</Button>}
-              
-              {step === 5 ? (
-                <Button 
-                    type="button" 
-                    className="w-full"
-                    onClick={form.handleSubmit(onSubmit)}
-                    disabled={isLoading || usernameStatus === 'checking'}
-                >
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Finish Profile
-                </Button>
-              ) : (
-                <Button 
-                    type="button" 
-                    className="w-full"
-                    onClick={handleNextStep}
-                    disabled={isLoading || usernameStatus === 'checking'}
-                >
-                    Continue
-                </Button>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl><Input placeholder="Your full name" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-             {step === 5 && (
-                <Button 
-                    variant="link" 
-                    type="button" 
-                    className="w-full"
-                    onClick={form.handleSubmit(onSubmit)}
-                    disabled={isLoading || usernameStatus === 'checking'}
-                >
-                    Skip for now
-                </Button>
-            )}
+            />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        placeholder="your_username" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          debouncedUsernameCheck(e.target.value);
+                        }}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
+                        {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
+                      <div className="space-x-1">
+                        <span>Suggestions:</span>
+                        {usernameSuggestions.map((s, i) => (
+                          <Button
+                            key={s}
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="p-0 h-auto"
+                            onClick={() => {
+                              form.setValue('username', s, { shouldValidate: true });
+                              handleUsernameCheck(s);
+                            }}
+                          >
+                            {s}{i < usernameSuggestions.length -1 && ','}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              disabled={isLoading || isGoogleLoading || usernameStatus === 'checking'}
+              className="w-full"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign Up
+            </Button>
           </form>
         </Form>
         
@@ -738,26 +410,17 @@ export default function SignupPage() {
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
             <Button
               variant="outline"
               type="button"
-              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
+              disabled={isLoading || isGoogleLoading}
               onClick={handleGoogleSignUp}
             >
               {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
               Google
             </Button>
-            <Button
-              variant="outline"
-              type="button"
-              disabled={isLoading || isGoogleLoading || isLinkLoading || isPhoneLoading}
-            >
-              <Phone className="mr-2 h-4 w-4" />
-              Phone
-            </Button>
         </div>
-        <div id="recaptcha-container"></div>
       </CardContent>
       <CardFooter className="flex justify-center text-sm">
         <p className="text-muted-foreground">
@@ -770,3 +433,5 @@ export default function SignupPage() {
     </Card>
   );
 }
+
+    
