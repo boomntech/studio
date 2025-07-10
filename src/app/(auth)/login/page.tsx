@@ -61,6 +61,21 @@ const formSchema = z.object({
     .min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
+const getLoginErrorMessage = (errorCode: string) => {
+  switch (errorCode) {
+    case 'auth/invalid-credential':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'Invalid email or password. Please try again.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/too-many-requests':
+      return 'Access to this account has been temporarily disabled due to many failed login attempts. Please try again later.';
+    default:
+      return 'An unexpected error occurred during login. Please try again.';
+  }
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -114,7 +129,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message,
+        description: getLoginErrorMessage(error.code),
       });
     } finally {
       setIsLoading(false);
@@ -136,9 +151,11 @@ export default function LoginPage() {
       await fbAuth.signInWithPopup(auth, provider);
       router.push('/');
     } catch (error: any) {
-      let description = error.message;
+      let description = 'An unexpected error occurred. Please try again.';
       if (error.code === 'auth/account-exists-with-different-credential') {
         description = 'An account with this email already exists. Please sign in with your original method (e.g., password) to use your account.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        description = 'The sign-in window was closed before completing. Please try again.';
       }
       toast({
         variant: 'destructive',
@@ -167,7 +184,13 @@ export default function LoginPage() {
         setPhoneStep('enterCode');
         toast({ title: 'Verification Code Sent', description: `A code has been sent to ${phoneNumber}.` });
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Failed to Send Code', description: error.message });
+        let description = 'An unexpected error occurred. Please try again.';
+        if (error.code === 'auth/invalid-phone-number') {
+            description = 'The phone number you entered is not valid.';
+        } else if (error.code === 'auth/too-many-requests') {
+            description = 'You have tried to send too many codes. Please try again later.';
+        }
+        toast({ variant: 'destructive', title: 'Failed to Send Code', description });
     } finally {
         setIsPhoneLoading(false);
     }
@@ -180,7 +203,13 @@ export default function LoginPage() {
           await confirmationResult.confirm(verificationCode);
           router.push('/');
       } catch (error: any) {
-          toast({ variant: 'destructive', title: 'Verification Failed', description: error.message });
+          let description = 'An unexpected error occurred. Please try again.';
+          if (error.code === 'auth/invalid-verification-code') {
+              description = 'The code you entered is incorrect. Please try again.';
+          } else if (error.code === 'auth/code-expired') {
+              description = 'The verification code has expired. Please request a new one.';
+          }
+          toast({ variant: 'destructive', title: 'Verification Failed', description });
       } finally {
           setIsPhoneLoading(false);
       }

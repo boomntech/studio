@@ -81,6 +81,19 @@ const checkUsernameAvailability = async (username: string): Promise<{ available:
     return { available: true, suggestions: [] };
 };
 
+const getSignupErrorMessage = (errorCode: string) => {
+    switch (errorCode) {
+        case 'auth/email-already-in-use':
+            return 'This email address is already in use by another account.';
+        case 'auth/invalid-email':
+            return 'The email address is not valid.';
+        case 'auth/weak-password':
+            return 'The password is too weak. Please choose a stronger password.';
+        default:
+            return 'An unexpected error occurred during sign up. Please try again.';
+    }
+};
+
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -169,7 +182,7 @@ export default function SignupPage() {
       toast({
         variant: 'destructive',
         title: 'Sign Up Failed',
-        description: authError.message,
+        description: getSignupErrorMessage(authError.code),
       });
       setIsLoading(false);
       return;
@@ -276,10 +289,16 @@ export default function SignupPage() {
 
       router.push('/');
     } catch (error: any) {
+      let description = 'An unexpected error occurred. Please try again.';
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        description = 'An account with this email already exists. Please sign in with your original method (e.g., password) to use your account.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        description = 'The sign-in window was closed before completing. Please try again.';
+      }
       toast({
         variant: 'destructive',
         title: 'Google Sign-Up Failed',
-        description: error.message,
+        description: description,
       });
     } finally {
       setIsGoogleLoading(false);
