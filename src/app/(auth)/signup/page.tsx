@@ -103,6 +103,7 @@ const formSchema = z.object({
 
   // Step 5
   interests: z.array(z.string()).min(1, { message: "Please select at least one interest." }).max(5, { message: "You can select up to 5 interests." }),
+  goals: z.array(z.string()).max(3, { message: "You can select up to 3 goals." }).optional(),
   contentPreferences: z.array(z.string()).min(1, {message: 'Please select at least one content type.'}).optional(),
 
   // Step 6
@@ -142,6 +143,15 @@ const stepDescriptions = [
     "Fuel algorithmic discovery and networking.",
     "This is optional. You can always do this later."
 ];
+
+const goals = [
+  { id: 'grow_audience', label: 'Grow my audience' },
+  { id: 'find_clients', label: 'Find new clients' },
+  { id: 'learn_skills', label: 'Learn new skills' },
+  { id: 'network_peers', label: 'Network with peers' },
+  { id: 'hire_talent', label: 'Hire talent' },
+  { id: 'discover_content', label: 'Discover content' },
+] as const;
 
 const contentPreferences = [
     { id: 'tips_tutorials', label: 'Tips & Tutorials' },
@@ -189,6 +199,7 @@ export default function SignupPage() {
       state: '',
       occupations: [],
       interests: [],
+      goals: [],
       contentPreferences: [],
       enableTwoFactor: false,
       industry: '',
@@ -267,7 +278,7 @@ export default function SignupPage() {
       fieldsToValidate = ['occupations', 'industry', 'isRunningBusiness', 'businessName', 'businessWebsite'];
     }
     if (step === 5) {
-      fieldsToValidate = ['interests', 'contentPreferences'];
+      fieldsToValidate = ['interests', 'goals', 'contentPreferences'];
     }
      if (step === 6) {
       fieldsToValidate = ['bio'];
@@ -682,6 +693,57 @@ export default function SignupPage() {
                 <MontanaTip tip="What are you into? Your interests fuel the 'For You' feed and help you find your community." />
                 <div className="space-y-6">
                   <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+                  <FormField
+                    control={form.control}
+                    name="goals"
+                    render={() => (
+                      <FormItem>
+                        <div className="mb-4">
+                          <FormLabel className="text-base">What are your goals?</FormLabel>
+                          <FormDescription>Select up to 3 that are most important to you.</FormDescription>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {goals.map((item) => (
+                             <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="goals"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                          const currentValue = field.value ?? [];
+                                          if (checked) {
+                                            if (currentValue.length < 3) {
+                                              field.onChange([...currentValue, item.id]);
+                                            } else {
+                                              toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
+                                            }
+                                          } else {
+                                            field.onChange(currentValue.filter((value) => value !== item.id));
+                                          }
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal text-sm">
+                                      {item.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="contentPreferences"
