@@ -693,102 +693,82 @@ export default function SignupPage() {
                 <MontanaTip tip="What are you into? Your interests fuel the 'For You' feed and help you find your community." />
                 <div className="space-y-6">
                   <FormField control={form.control} name="interests" render={({ field }) => ( <FormItem> <FormLabel>Interests</FormLabel> <FormControl> <InterestInput value={field.value ?? []} onChange={field.onChange} /> </FormControl> <FormDescription> Select up to 5 interests. This will help us recommend relevant content. </FormDescription> <FormMessage /> </FormItem> )} />
+                  
                   <FormField
                     control={form.control}
                     name="goals"
-                    render={() => (
+                    render={({ field }) => (
                       <FormItem>
                         <div className="mb-4">
                           <FormLabel className="text-base">What are your goals?</FormLabel>
                           <FormDescription>Select up to 3 that are most important to you.</FormDescription>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                          {goals.map((item) => (
-                             <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="goals"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          const currentValue = field.value ?? [];
-                                          if (checked) {
-                                            if (currentValue.length < 3) {
-                                              field.onChange([...currentValue, item.id]);
-                                            } else {
-                                              toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
-                                            }
-                                          } else {
-                                            field.onChange(currentValue.filter((value) => value !== item.id));
-                                          }
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal text-sm">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
+                        <FormControl>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                            {goals.map((item) => (
+                              <div key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                <Checkbox
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    const currentValue = field.value ?? [];
+                                    if (checked) {
+                                      if (currentValue.length < 3) {
+                                        field.onChange([...currentValue, item.id]);
+                                      } else {
+                                        toast({ variant: 'destructive', title: 'You can only select up to 3 goals.'});
+                                      }
+                                    } else {
+                                      field.onChange(currentValue.filter((value) => value !== item.id));
+                                    }
+                                  }}
+                                  id={`goal-${item.id}`}
+                                />
+                                <Label htmlFor={`goal-${item.id}`} className="font-normal text-sm">
+                                  {item.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="contentPreferences"
-                    render={() => (
+                    render={({ field }) => (
                       <FormItem>
                         <div className="mb-4">
                           <FormLabel className="text-base">What kind of content are you interested in?</FormLabel>
                           <FormDescription>This helps us tailor your feed.</FormDescription>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                          {contentPreferences.map((item) => (
-                             <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="contentPreferences"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          const currentValue = field.value ?? [];
-                                          return checked
-                                            ? field.onChange([...currentValue, item.id])
-                                            : field.onChange(
-                                                currentValue.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal text-sm">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
+                        <FormControl>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                            {contentPreferences.map((item) => (
+                              <div key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                <Checkbox
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    const currentValue = field.value ?? [];
+                                    return checked
+                                      ? field.onChange([...currentValue, item.id])
+                                      : field.onChange(
+                                          currentValue.filter(
+                                            (value) => value !== item.id
+                                          )
+                                        );
+                                  }}
+                                  id={`content-${item.id}`}
+                                />
+                                <Label htmlFor={`content-${item.id}`} className="font-normal text-sm">
+                                  {item.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
