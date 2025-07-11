@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import *d from 'firebase/auth';
+import * as fbAuth from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
 import { sendInitialWelcomeMessage } from '@/services/messageService';
