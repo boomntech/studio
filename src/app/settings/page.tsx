@@ -167,7 +167,7 @@ export default function SettingsPage() {
         } else {
           setUsernameStatus('taken');
           setUsernameSuggestions(suggestions);
-          profileForm.setError('username', { type: 'manual', message: 'This username is already taken.' });
+          form.setError('username', { type: 'manual', message: 'This username is already taken.' });
         }
       },
       [profileForm, initialUsername]
@@ -230,7 +230,9 @@ export default function SettingsPage() {
             };
     
             fetchProfile();
-            setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.some(f => f.factorId === 'phone'));
+            if (user.multiFactor) {
+              setIsTwoFactorEnabled(user.multiFactor.enrolledFactors.some(f => f.factorId === 'phone'));
+            }
         }
     }, [user, profileForm]);
     
