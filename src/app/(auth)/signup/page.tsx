@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import * as fbAuth from 'firebase/auth';
+import *d from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
 import { sendInitialWelcomeMessage } from '@/services/messageService';
@@ -344,7 +344,6 @@ export default function SignupPage() {
                   </FormControl>
                   <FormDescription>
                     {usernameStatus === 'checking' && 'Checking availability...'}
-                    {usernameStatus === 'available' && <span className="text-green-500">Username is available!</span>}
                     {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
                       <div className="space-x-1">
                         <span>Suggestions:</span>

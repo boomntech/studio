@@ -43,6 +43,7 @@ export interface UserProfile {
   goals?: string[];
   contentPreferences?: string[];
   savedPosts?: string[]; // Array of post IDs
+  profileCompleted?: boolean;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -73,8 +74,23 @@ export const saveUserProfile = async (uid: string, profileData: Omit<UserProfile
       role: 'user',
       createdAt: serverTimestamp(),
       savedPosts: [],
+      profileCompleted: false, // Default for new users
     });
   }
+};
+
+/**
+ * Updates specific fields of a user's profile.
+ * @param uid The user's unique ID.
+ * @param data The partial data to update.
+ */
+export const updateUserProfile = async (uid: string, data: Partial<UserProfile>) => {
+    if (!firestore) throw new Error("Firestore not initialized");
+    const userDocRef = doc(firestore, 'users', uid);
+    await updateDoc(userDocRef, {
+        ...data,
+        updatedAt: serverTimestamp(),
+    });
 };
 
 

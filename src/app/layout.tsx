@@ -19,6 +19,7 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { GoogleAnalytics } from '@/components/google-analytics';
 import { VideoCallProvider } from '@/context/VideoCallContext';
 import { MinimizedVideoCall } from '@/components/minimized-video-call';
+import { OnboardingProvider } from '@/context/OnboardingContext';
 
 export const metadata: Metadata = {
   title: 'Boomn',
@@ -52,30 +53,32 @@ export default function RootLayout({
             <GoogleAnalytics />
         </Suspense>
         <AuthProvider>
-          <VideoCallProvider>
-            <SidebarProvider>
-              <Sidebar>
-                <SidebarHeader>
-                  <div className="flex w-full items-center justify-center gap-2">
-                    <BoomnLogo className="w-8 h-8 text-sidebar-primary" />
-                    <h1 className="text-xl font-bold text-sidebar-foreground">Boomn</h1>
-                  </div>
-                </SidebarHeader>
-                <SidebarContent>
-                  <MainNav />
-                </SidebarContent>
-                <SidebarFooter>
-                  <UserNav />
-                </SidebarFooter>
-              </Sidebar>
-              <SidebarInset>
-                <SiteHeader />
-                <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-              </SidebarInset>
-            </SidebarProvider>
-            <Toaster />
-            <MinimizedVideoCall />
-          </VideoCallProvider>
+          <OnboardingProvider>
+            <VideoCallProvider>
+              <SidebarProvider>
+                <Sidebar>
+                  <SidebarHeader>
+                    <div className="flex w-full items-center justify-center gap-2">
+                      <BoomnLogo className="w-8 h-8 text-sidebar-primary" />
+                      <h1 className="text-xl font-bold text-sidebar-foreground">Boomn</h1>
+                    </div>
+                  </SidebarHeader>
+                  <SidebarContent>
+                    <MainNav />
+                  </SidebarContent>
+                  <SidebarFooter>
+                    <UserNav />
+                  </SidebarFooter>
+                </Sidebar>
+                <SidebarInset>
+                  <SiteHeader />
+                  <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+                </SidebarInset>
+              </SidebarProvider>
+              <Toaster />
+              <MinimizedVideoCall />
+            </VideoCallProvider>
+          </OnboardingProvider>
         </AuthProvider>
       </body>
     </html>
