@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as fbAuth from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseInitialized } from '@/lib/firebase';
 import { saveUserProfile, isUsernameTaken, getUserProfile } from '@/services/userService';
 import { sendInitialWelcomeMessage } from '@/services/messageService';
 import { Button } from '@/components/ui/button';
@@ -116,6 +116,18 @@ export default function SignupPage() {
     },
   });
 
+  useEffect(() => {
+    if (!isFirebaseInitialized) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Please add your Firebase keys to the .env file in the root of the project.',
+            duration: 10000,
+        });
+    }
+  }, [toast]);
+
+
   const handleUsernameCheck = useCallback(
     async (username: string) => {
       if (username.length < 3 || form.getFieldState('username').invalid) {
@@ -153,6 +165,14 @@ export default function SignupPage() {
 
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!isFirebaseInitialized || !auth) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Authentication is currently disabled.',
+        });
+        return;
+    }
     setIsLoading(true);
 
     if (usernameStatus === 'taken') {
@@ -161,16 +181,6 @@ export default function SignupPage() {
       return;
     }
     
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Configuration Not Found',
-        description: 'Your Firebase API keys are missing. Please add them to the .env file in the root of your project and restart the server.',
-      });
-      setIsLoading(false);
-      return;
-    }
-
     let userCredential: fbAuth.UserCredential | null = null;
     try {
       userCredential = await fbAuth.createUserWithEmailAndPassword(
@@ -233,9 +243,9 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignUp = async () => {
-    if (!auth) {
-      toast({ variant: 'destructive', title: 'Firebase not configured.' });
-      return;
+    if (!isFirebaseInitialized || !auth) {
+        toast({ variant: 'destructive', title: 'Firebase not configured.' });
+        return;
     }
     setIsGoogleLoading(true);
     const provider = new fbAuth.GoogleAuthProvider();
@@ -321,7 +331,7 @@ export default function SignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
-                  <FormControl><Input placeholder="Your full name" {...field} /></FormControl>
+                  <FormControl><Input placeholder="Your full name" {...field} disabled={!isFirebaseInitialized} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -340,6 +350,7 @@ export default function SignupPage() {
                         field.onChange(e);
                         debouncedUsernameCheck(e.target.value);
                       }}
+                       disabled={!isFirebaseInitialized}
                     />
                   </FormControl>
                   <FormDescription>
@@ -375,7 +386,7 @@ export default function SignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <FormControl><Input placeholder="you@example.com" {...field} /></FormControl>
+                  <FormControl><Input placeholder="you@example.com" {...field} disabled={!isFirebaseInitialized} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -386,7 +397,7 @@ export default function SignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} disabled={!isFirebaseInitialized} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -397,14 +408,14 @@ export default function SignupPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
-                  <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                  <FormControl><Input type="password" placeholder="••••••••" {...field} disabled={!isFirebaseInitialized} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading || usernameStatus === 'checking'}
+              disabled={isLoading || isGoogleLoading || usernameStatus === 'checking' || !isFirebaseInitialized}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -427,7 +438,7 @@ export default function SignupPage() {
             <Button
               variant="outline"
               type="button"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading || isGoogleLoading || !isFirebaseInitialized}
               onClick={handleGoogleSignUp}
             >
               {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}

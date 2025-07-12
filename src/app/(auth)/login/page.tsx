@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import * as fbAuth from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseInitialized } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -98,8 +98,17 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (!auth) return;
-    if (!(window as any).recaptchaVerifier) {
+    if (!isFirebaseInitialized) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Please add your Firebase keys to the .env file in the root of the project.',
+            duration: 10000,
+        });
+        return;
+    }
+
+    if (auth && !(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new fbAuth.RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': () => { /* reCAPTCHA solved */ }
@@ -108,19 +117,18 @@ export default function LoginPage() {
         console.error("reCAPTCHA render error", err);
       });
     }
-  }, []);
+  }, [toast]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Configuration Not Found',
-        description: 'Your Firebase API keys are missing. Please add them to the .env file in the root of your project and restart the server.',
-      });
-      setIsLoading(false);
-      return;
+    if (!isFirebaseInitialized || !auth) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Authentication is currently disabled.',
+        });
+        return;
     }
+    setIsLoading(true);
 
     try {
       await fbAuth.signInWithEmailAndPassword(auth, values.email, values.password);
@@ -137,13 +145,13 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Configuration Not Found',
-        description: 'Your Firebase API keys are missing. Please add them to the .env file in the root of your project and restart the server.',
-      });
-      return;
+    if (!isFirebaseInitialized || !auth) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Authentication is currently disabled.',
+        });
+        return;
     }
     setIsGoogleLoading(true);
     const provider = new fbAuth.GoogleAuthProvider();
@@ -168,9 +176,9 @@ export default function LoginPage() {
   };
 
   const handleSendVerificationSms = async () => {
-    if (!auth) {
-      toast({ variant: 'destructive', title: 'Firebase not configured.'});
-      return;
+    if (!isFirebaseInitialized || !auth) {
+        toast({ variant: 'destructive', title: 'Firebase not configured.'});
+        return;
     }
     if (!phoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
         toast({ variant: 'destructive', title: 'Invalid Phone Number', description: 'Please use E.164 format (e.g., +14155552671).' });
@@ -232,7 +240,7 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
+                    <Input placeholder="you@example.com" {...field} disabled={!isFirebaseInitialized} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -249,6 +257,7 @@ export default function LoginPage() {
                       type="password"
                       placeholder="••••••••"
                       {...field}
+                      disabled={!isFirebaseInitialized}
                     />
                   </FormControl>
                   <FormMessage />
@@ -257,7 +266,7 @@ export default function LoginPage() {
             />
             <Button
               type="submit"
-              disabled={anyLoading}
+              disabled={anyLoading || !isFirebaseInitialized}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -279,7 +288,7 @@ export default function LoginPage() {
            <Button
             variant="outline"
             type="button"
-            disabled={anyLoading}
+            disabled={anyLoading || !isFirebaseInitialized}
             onClick={handleGoogleSignIn}
             className="w-full"
           >
@@ -312,12 +321,12 @@ export default function LoginPage() {
                   placeholder="+14155552671"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={anyLoading}
+                  disabled={anyLoading || !isFirebaseInitialized}
                 />
                 <Button
                   variant="outline"
                   type="button"
-                  disabled={anyLoading || !phoneNumber}
+                  disabled={anyLoading || !phoneNumber || !isFirebaseInitialized}
                   onClick={handleSendVerificationSms}
                   className="w-auto"
                 >

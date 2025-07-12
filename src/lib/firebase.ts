@@ -21,23 +21,30 @@ let firestore: Firestore | null = null;
 let analytics: Analytics | null = null;
 let storage: FirebaseStorage | null = null;
 
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-  try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    firestore = getFirestore(app);
-    storage = getStorage(app);
-    if (firebaseConfig.measurementId) {
-      analytics = getAnalytics(app);
+// This flag indicates if the config is valid and Firebase has been initialized.
+let isFirebaseInitialized = false;
+
+if (typeof window !== 'undefined') {
+  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+    try {
+      app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+      auth = getAuth(app);
+      firestore = getFirestore(app);
+      storage = getStorage(app);
+      if (firebaseConfig.measurementId) {
+        analytics = getAnalytics(app);
+      }
+      isFirebaseInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize Firebase', error);
+      isFirebaseInitialized = false;
     }
-  } catch (error) {
-    console.error('Failed to initialize Firebase', error);
-    app = null;
-    auth = null;
-    firestore = null;
-    analytics = null;
-    storage = null;
+  } else {
+    console.error(
+      'Firebase configuration is missing. Please check your .env file in the root of your project.'
+    );
+    isFirebaseInitialized = false;
   }
 }
 
-export { app, auth, firestore, analytics, storage };
+export { app, auth, firestore, analytics, storage, isFirebaseInitialized };
