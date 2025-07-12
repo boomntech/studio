@@ -10,7 +10,7 @@ import {
 import type { User } from 'firebase/auth';
 // Import as a module to prevent build errors
 import * as fbAuth from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseInitialized } from '@/lib/firebase';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!auth) {
+    if (!isFirebaseInitialized || !auth) {
       setLoading(false);
       return;
     }
