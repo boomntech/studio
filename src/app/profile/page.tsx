@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Camera } from 'lucide-react';
-import { RainbowIcon } from '@/components/rainbow-icon';
 
 const user = {
   name: 'Boomn User',
@@ -58,7 +57,6 @@ export default function ProfilePage() {
                 <div>
                   <h1 className="text-2xl font-bold flex items-center gap-2">
                     {user.name}
-                    {user.sexualOrientation === 'lgbtq' && <RainbowIcon className="w-6 h-4 rounded-sm" />}
                   </h1>
                   <p className="text-muted-foreground">{user.handle}</p>
                 </div>
