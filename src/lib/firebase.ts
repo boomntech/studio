@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -14,20 +15,29 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let firestore: Firestore | null = null;
 let analytics: Analytics | null = null;
 let storage: FirebaseStorage | null = null;
-
-// This flag indicates if the config is valid and Firebase has been initialized.
 let isFirebaseInitialized = false;
 
 if (typeof window !== 'undefined') {
-  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+  // Check that all required config values are present
+  const requiredConfig = [
+    'apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'
+  ];
+  const missingConfig = requiredConfig.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
+
+  if (missingConfig.length > 0) {
+    console.error(
+      'Firebase configuration is missing or incomplete. Please check your .env file in the root of your project. Missing keys:', 
+      missingConfig.join(', ')
+    );
+    isFirebaseInitialized = false;
+  } else {
     try {
-      app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+      app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
       auth = getAuth(app);
       firestore = getFirestore(app);
       storage = getStorage(app);
@@ -36,14 +46,9 @@ if (typeof window !== 'undefined') {
       }
       isFirebaseInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize Firebase', error);
+      console.error('Failed to initialize Firebase:', error);
       isFirebaseInitialized = false;
     }
-  } else {
-    console.error(
-      'Firebase configuration is missing. Please check your .env file in the root of your project.'
-    );
-    isFirebaseInitialized = false;
   }
 }
 
