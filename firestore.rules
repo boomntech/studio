@@ -1,0 +1,51 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Users can only read and write to their own profile.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Any authenticated user can read posts, but only the author can modify them.
+    // Any authenticated user can create a post.
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.author.uid;
+    }
+    
+    // Any authenticated user can read events.
+    // In a real app, you might restrict write access to admins.
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      // For now, allow any authenticated user to create/update/delete for ease of use.
+      allow write: if request.auth != null;
+    }
+
+    // Rules for conversations (messages)
+    match /conversations/{conversationId} {
+      // Allow read/write only if the user is a participant in the conversation.
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.participants;
+      
+      // Rules for messages within a conversation
+      match /messages/{messageId} {
+         // Allow read/write only if the user is a participant in the parent conversation.
+         allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      }
+    }
+    
+    // Wallets can only be read/updated by their owner.
+    match /wallets/{userId} {
+      allow read, update, create: if request.auth != null && request.auth.uid == userId;
+      
+      // Transaction history can only be accessed by the wallet owner.
+      match /transactions/{transactionId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
