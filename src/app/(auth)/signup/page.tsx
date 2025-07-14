@@ -33,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
-import GoogleIcon from '@/assets/google.svg';
+import { ReactComponent as GoogleIcon } from '@/assets/google.svg';
 
 
 const formSchema = z.object({
