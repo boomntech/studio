@@ -1,0 +1,50 @@
+const withPWA = require('@ducanh2912/next-pwa');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/i,
+      issuer: /\.[jt]sx?$/,
+      use: ['@svgr/webpack'],
+    });
+    return config;
+  },
+  // This is the new experimental block for Turbopack
+  experimental: {
+    turbo: {
+      rules: {
+        '**/*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.jsx',
+        },
+      },
+    },
+  },
+  allowedDevOrigins: [
+    'https://9003-firebase-studio-1751737012031.cluster-76blnmxvvzdpat4inoxk5tmzik.cloudworkstations.dev',
+  ],
+};
+
+module.exports = withPWA({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
+})(nextConfig);

@@ -3,9 +3,3 @@
 
 // NOTE: This file should not be edited
 // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
-
-declare module '*.svg' {
-  import * as React from 'react';
-  const ReactComponent: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
-  export default ReactComponent;
-}
