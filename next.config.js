@@ -1,5 +1,3 @@
-const withPWA = require('@ducanh2912/next-pwa');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -26,25 +24,9 @@ const nextConfig = {
     });
     return config;
   },
-  // This is the new experimental block for Turbopack
-  experimental: {
-    turbo: {
-      rules: {
-        '**/*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.jsx',
-        },
-      },
-    },
-  },
   allowedDevOrigins: [
     'https://9003-firebase-studio-1751737012031.cluster-76blnmxvvzdpat4inoxk5tmzik.cloudworkstations.dev',
   ],
 };
 
-module.exports = withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-})(nextConfig);
+module.exports = nextConfig;
