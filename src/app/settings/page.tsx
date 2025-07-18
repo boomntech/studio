@@ -64,12 +64,11 @@ const profileFormSchema = z.object({
 });
 
 
-// Real function to check username availability against Firestore
 const checkUsernameAvailability = async (username: string, currentUsername?: string): Promise<{ available: boolean; suggestions: string[] }> => {
     if (username.toLowerCase() === currentUsername?.toLowerCase()) {
       return { available: true, suggestions: [] };
     }
-    const isTaken = await isUsernameTaken(username);
+    const isTaken = await isUsernameTaken(username, currentUsername);
     if (isTaken) {
         return {
             available: false,
@@ -106,7 +105,6 @@ export default function SettingsPage() {
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [initialAvatarUrl, setInitialAvatarUrl] = useState<string | undefined>(undefined);
 
-    // 2FA State
     const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -114,7 +112,6 @@ export default function SettingsPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
 
-    // Username state
     const [initialUsername, setInitialUsername] = useState('');
     const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
@@ -148,11 +145,6 @@ export default function SettingsPage() {
 
     const handleUsernameCheck = useCallback(
       async (username: string) => {
-        if (username.toLowerCase() === initialUsername.toLowerCase()) {
-          setUsernameStatus('idle');
-          profileForm.clearErrors('username');
-          return;
-        }
         if (username.length < 3 || profileForm.getFieldState('username').invalid) {
           setUsernameStatus('idle');
           return;
@@ -167,7 +159,7 @@ export default function SettingsPage() {
         } else {
           setUsernameStatus('taken');
           setUsernameSuggestions(suggestions);
-          form.setError('username', { type: 'manual', message: 'This username is already taken.' });
+          profileForm.setError('username', { type: 'manual', message: 'This username is already taken.' });
         }
       },
       [profileForm, initialUsername]
@@ -201,17 +193,15 @@ export default function SettingsPage() {
                 if (!user) return;
                 const profile = await getUserProfile(user.uid);
                 
-                // Set initial username for checking logic
                 const currentUsername = profile?.username || user.email?.split('@')[0] || 'boomnuser';
                 setInitialUsername(currentUsername);
                 setInitialAvatarUrl(profile?.avatarUrl || user.photoURL || undefined);
     
-                // Populate form with Firestore data, falling back to Auth data
                 profileForm.reset({
                     name: profile?.name || user.displayName || '',
                     username: currentUsername,
                     bio: profile?.bio || '',
-                    dob: profile?.dob, // getUserProfile converts timestamp to Date
+                    dob: profile?.dob,
                     gender: profile?.gender || '',
                     race: profile?.race || '',
                     sexualOrientation: profile?.sexualOrientation || '',
@@ -269,12 +259,10 @@ export default function SettingsPage() {
               finalAvatarUrl = await getDownloadURL(avatarStorageRef);
             }
 
-            // Update display name and photoURL in Firebase Auth
             if (values.name !== user.displayName || (finalAvatarUrl && finalAvatarUrl !== user.photoURL)) {
                 await fbAuth.updateProfile(user, { displayName: values.name, photoURL: finalAvatarUrl });
             }
     
-            // Save all profile data to Firestore
             await saveUserProfile(user.uid, {
                 email: user.email!,
                 avatarUrl: finalAvatarUrl,
@@ -282,7 +270,7 @@ export default function SettingsPage() {
             });
             
             if (values.username && values.username.toLowerCase() !== initialUsername.toLowerCase()) {
-              setInitialUsername(values.username); // Update the initial username to the new one
+              setInitialUsername(values.username); 
             }
             toast({ title: 'Profile Updated', description: 'Your information has been successfully updated.' });
         } catch (error: any) {
@@ -293,7 +281,6 @@ export default function SettingsPage() {
     };
 
     const handleSendCode = async () => {
-        // Full implementation requires Firebase logic with RecaptchaVerifier
         setIsLoading(true);
         console.log('Sending verification code to:', phoneNumber);
         setTimeout(() => {
@@ -304,7 +291,6 @@ export default function SettingsPage() {
     };
 
     const handleVerifyCode = async () => {
-        // Full implementation requires Firebase logic
         setIsLoading(true);
         console.log('Verifying code:', verificationCode);
         setTimeout(() => {
@@ -317,7 +303,6 @@ export default function SettingsPage() {
     };
 
     const handleDisable2FA = async () => {
-        // Full implementation requires Firebase logic
         setIsLoading(true);
         console.log('Disabling 2FA');
         setTimeout(() => {

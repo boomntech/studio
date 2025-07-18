@@ -119,12 +119,18 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 /**
  * Checks if a username is already taken.
  * @param username The username to check.
+ * @param currentUsername The current username of the user performing the check.
  * @returns True if the username is taken, false otherwise.
  */
-export const isUsernameTaken = async (username: string): Promise<boolean> => {
+export const isUsernameTaken = async (username: string, currentUsername?: string): Promise<boolean> => {
     if (!firestore) throw new Error("Firestore not initialized");
-    // Query against the lowercase username
-    const q = query(collection(firestore, 'users'), where("username", "==", username.toLowerCase()));
+    const lowerCaseUsername = username.toLowerCase();
+    
+    if (lowerCaseUsername === currentUsername?.toLowerCase()) {
+      return false;
+    }
+
+    const q = query(collection(firestore, 'users'), where("username", "==", lowerCaseUsername));
     const querySnapshot = await getDocs(q);
     return !querySnapshot.empty;
 };
@@ -166,7 +172,6 @@ export const connectWithUser = async (currentUserId: string, targetUserId: strin
     connectedAt: serverTimestamp(),
   };
 
-  // Use a batch write to ensure both documents are created atomically.
   const batch = writeBatch(firestore);
   batch.set(currentUserConnectionDoc, connectionData);
   batch.set(targetUserConnectionDoc, connectionData);
@@ -233,7 +238,6 @@ export const getMultipleUserProfiles = async (uids: string[]): Promise<Record<st
     if (!firestore) throw new Error("Firestore not initialized");
     if (uids.length === 0) return {};
   
-    // Firestore 'in' query is limited to 30 elements. Chunk if necessary.
     const chunks: string[][] = [];
     for (let i = 0; i < uids.length; i += 30) {
         chunks.push(uids.slice(i, i + 30));
