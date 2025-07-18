@@ -25,6 +25,14 @@ const nextConfig = {
     });
     return config;
   },
+   turbo: {
+    rules: {
+      '**/*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.jsx',
+      },
+    },
+  },
   allowedDevOrigins: [
     'https://9003-firebase-studio-1751737012031.cluster-76blnmxvvzdpat4inoxk5tmzik.cloudworkstations.dev',
   ],
