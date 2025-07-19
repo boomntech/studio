@@ -155,7 +155,7 @@ export default function SignupPage() {
     }
     setIsLoading(true);
 
-    if (usernameStatus === 'taken') {
+    if (usernameStatus !== 'available') {
       form.setError('username', { type: 'manual', message: 'Please choose an available username.' });
       setIsLoading(false);
       return;
@@ -395,7 +395,7 @@ export default function SignupPage() {
             />
             <Button
               type="submit"
-              disabled={isLoading || isGoogleLoading || usernameStatus === 'checking' || !isFirebaseInitialized}
+              disabled={isLoading || isGoogleLoading || usernameStatus !== 'available' || !isFirebaseInitialized}
               className="w-full"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -437,3 +437,5 @@ export default function SignupPage() {
     </Card>
   );
 }
+
+    

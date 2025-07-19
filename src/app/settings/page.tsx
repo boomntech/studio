@@ -68,7 +68,7 @@ const checkUsernameAvailability = async (username: string, currentUsername?: str
     if (username.toLowerCase() === currentUsername?.toLowerCase()) {
       return { available: true, suggestions: [] };
     }
-    const isTaken = await isUsernameTaken(username, currentUsername);
+    const isTaken = await isUsernameTaken(username);
     if (isTaken) {
         return {
             available: false,
@@ -890,7 +890,7 @@ export default function SettingsPage() {
                     <CardDescription>
                         Manage how the app uses your data to optimize performance.
                     </CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
@@ -911,3 +911,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    
