@@ -64,7 +64,7 @@ const profileFormSchema = z.object({
 });
 
 
-const checkUsernameAvailability = async (username: string, currentUserId?: string): Promise<{ available: boolean; suggestions: string[] }> => {
+const checkUsernameAvailability = async (username: string, currentUserId: string): Promise<{ available: boolean; suggestions: string[] }> => {
     const isTaken = await isUsernameTaken(username, currentUserId);
     if (isTaken) {
         return {
@@ -142,13 +142,18 @@ export default function SettingsPage() {
 
     const handleUsernameCheck = useCallback(
       async (username: string) => {
+        if (!user || username === initialUsername) {
+            setUsernameStatus('idle');
+            return;
+        }
+
         if (username.length < 3 || profileForm.getFieldState('username').invalid) {
           setUsernameStatus('idle');
           return;
         }
         
         setUsernameStatus('checking');
-        const { available, suggestions } = await checkUsernameAvailability(username, user?.uid);
+        const { available, suggestions } = await checkUsernameAvailability(username, user.uid);
 
         if (available) {
           setUsernameStatus('available');
@@ -159,7 +164,7 @@ export default function SettingsPage() {
           profileForm.setError('username', { type: 'manual', message: 'This username is already taken.' });
         }
       },
-      [profileForm, user]
+      [profileForm, user, initialUsername]
     );
 
     const debouncedUsernameCheck = useCallback(
@@ -908,5 +913,3 @@ export default function SettingsPage() {
         </div>
     );
 }
-
-    

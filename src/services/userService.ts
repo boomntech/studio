@@ -119,7 +119,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 /**
  * Checks if a username is already taken.
  * @param username The username to check.
- * @param currentUserId The UID of the user performing the check (to exclude their own username).
+ * @param currentUserId Optional. The UID of the user performing the check. If provided, the check will ignore this user's own username.
  * @returns True if the username is taken by another user, false otherwise.
  */
 export const isUsernameTaken = async (username: string, currentUserId?: string): Promise<boolean> => {
@@ -128,13 +128,23 @@ export const isUsernameTaken = async (username: string, currentUserId?: string):
     const lowerCaseUsername = username.toLowerCase();
     const usersCollection = collection(firestore, 'users');
 
-    // Base query to find the username
-    let q = query(usersCollection, where("username", "==", lowerCaseUsername));
-
-    // If a currentUserId is provided, we only want to find users who have this username
-    // but are NOT the current user.
+    let q;
+    // If a currentUserId is provided (i.e., on the settings page),
+    // find any user with this username that is NOT the current user.
     if (currentUserId) {
-        q = query(q, where("uid", "!=", currentUserId));
+        q = query(
+            usersCollection,
+            where("username", "==", lowerCaseUsername),
+            where("uid", "!=", currentUserId)
+        );
+    } 
+    // If no currentUserId is provided (i.e., on the signup page),
+    // find any user with this username.
+    else {
+        q = query(
+            usersCollection,
+            where("username", "==", lowerCaseUsername)
+        );
     }
 
     const querySnapshot = await getDocs(q);
