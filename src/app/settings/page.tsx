@@ -64,11 +64,8 @@ const profileFormSchema = z.object({
 });
 
 
-const checkUsernameAvailability = async (username: string, currentUsername?: string): Promise<{ available: boolean; suggestions: string[] }> => {
-    if (username.toLowerCase() === currentUsername?.toLowerCase()) {
-      return { available: true, suggestions: [] };
-    }
-    const isTaken = await isUsernameTaken(username);
+const checkUsernameAvailability = async (username: string, currentUserId?: string): Promise<{ available: boolean; suggestions: string[] }> => {
+    const isTaken = await isUsernameTaken(username, currentUserId);
     if (isTaken) {
         return {
             available: false,
@@ -151,7 +148,7 @@ export default function SettingsPage() {
         }
         
         setUsernameStatus('checking');
-        const { available, suggestions } = await checkUsernameAvailability(username, initialUsername);
+        const { available, suggestions } = await checkUsernameAvailability(username, user?.uid);
 
         if (available) {
           setUsernameStatus('available');
@@ -162,7 +159,7 @@ export default function SettingsPage() {
           profileForm.setError('username', { type: 'manual', message: 'This username is already taken.' });
         }
       },
-      [profileForm, initialUsername]
+      [profileForm, user]
     );
 
     const debouncedUsernameCheck = useCallback(
@@ -865,7 +862,7 @@ export default function SettingsPage() {
                     <CardDescription>
                         Choose your preferred language for the app interface.
                     </CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                     <Select defaultValue="en">
                         <SelectTrigger>

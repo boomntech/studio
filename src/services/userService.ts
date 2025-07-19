@@ -119,21 +119,28 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 /**
  * Checks if a username is already taken.
  * @param username The username to check.
- * @param currentUsername The current username of the user performing the check.
- * @returns True if the username is taken, false otherwise.
+ * @param currentUserId The UID of the user performing the check (to exclude their own username).
+ * @returns True if the username is taken by another user, false otherwise.
  */
-export const isUsernameTaken = async (username: string, currentUsername?: string): Promise<boolean> => {
+export const isUsernameTaken = async (username: string, currentUserId?: string): Promise<boolean> => {
     if (!firestore) throw new Error("Firestore not initialized");
-    const lowerCaseUsername = username.toLowerCase();
     
-    if (lowerCaseUsername === currentUsername?.toLowerCase()) {
-      return false;
+    const lowerCaseUsername = username.toLowerCase();
+    const usersCollection = collection(firestore, 'users');
+
+    // Base query to find the username
+    let q = query(usersCollection, where("username", "==", lowerCaseUsername));
+
+    // If a currentUserId is provided, we only want to find users who have this username
+    // but are NOT the current user.
+    if (currentUserId) {
+        q = query(q, where("uid", "!=", currentUserId));
     }
 
-    const q = query(collection(firestore, 'users'), where("username", "==", lowerCaseUsername));
     const querySnapshot = await getDocs(q);
     return !querySnapshot.empty;
 };
+
 
 /**
  * Finds a user by their username (case-insensitive).
