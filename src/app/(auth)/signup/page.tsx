@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, X } from 'lucide-react';
 import { BoomnLogo } from '@/components/boomn-logo';
 import { GoogleIcon } from '@/components/google-icon';
 
@@ -323,18 +323,26 @@ export default function SignupPage() {
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="your_username" 
-                      {...field} 
-                      onChange={(e) => {
-                        field.onChange(e);
-                        debouncedUsernameCheck(e.target.value);
-                      }}
-                       disabled={!isFirebaseInitialized}
-                    />
+                    <div className="relative">
+                      <Input 
+                        placeholder="your_username" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          debouncedUsernameCheck(e.target.value);
+                        }}
+                        disabled={!isFirebaseInitialized}
+                        className="pr-10"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        {usernameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {usernameStatus === 'available' && <Check className="h-4 w-4 text-green-500" />}
+                        {usernameStatus === 'taken' && <X className="h-4 w-4 text-destructive" />}
+                      </div>
+                    </div>
                   </FormControl>
                   <FormDescription>
-                    {usernameStatus === 'checking' && 'Checking availability...'}
+                    {usernameStatus === 'available' && <span className="text-green-500">Username is available!</span>}
                     {usernameStatus === 'taken' && usernameSuggestions.length > 0 && (
                       <div className="space-x-1">
                         <span>Suggestions:</span>
@@ -437,5 +445,3 @@ export default function SignupPage() {
     </Card>
   );
 }
-
-    
